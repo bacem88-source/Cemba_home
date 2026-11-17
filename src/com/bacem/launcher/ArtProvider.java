@@ -15,6 +15,31 @@ public class ArtProvider extends ContentProvider {
     @Override public boolean onCreate() { return true; }
     @Override public ParcelFileDescriptor openFile(Uri uri, String mode) throws FileNotFoundException {
         String name = uri.getLastPathSegment();
+        // v4.31: serve the downloaded update APK to the system installer.
+        // The APK is downloaded to the app's files dir by downloadAndInstall
+        // and opened as content://com.bacem.launcher.art/update.apk.
+        if ("update.apk".equals(name)) {
+            try {
+                ParcelFileDescriptor[] pipe = ParcelFileDescriptor.createPipe();
+                final ParcelFileDescriptor.AutoCloseOutputStream out =
+                        new ParcelFileDescriptor.AutoCloseOutputStream(pipe[1]);
+                final java.io.File f = new java.io.File(getContext().getFilesDir(), "update.apk");
+                new Thread(() -> {
+                    try {
+                        java.io.FileInputStream in = new java.io.FileInputStream(f);
+                        byte[] buf = new byte[8192];
+                        int n;
+                        while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                        out.flush();
+                        in.close();
+                    } catch (Exception e) { /* ignore */ }
+                    try { out.close(); } catch (Exception e) { /* ignore */ }
+                }).start();
+                return pipe[0];
+            } catch (IOException e) {
+                throw new FileNotFoundException(String.valueOf(e.getMessage()));
+            }
+        }
         if ("weather".equals(name)) {
             try {
                 ParcelFileDescriptor[] pipe = ParcelFileDescriptor.createPipe();
@@ -57,7 +82,10 @@ public class ArtProvider extends ContentProvider {
             throw new FileNotFoundException(String.valueOf(e.getMessage()));
         }
     }
-    @Override public String getType(Uri uri) { return "image/png"; }
+    @Override public String getType(Uri uri) {
+        if ("update.apk".equals(uri.getLastPathSegment())) return "application/vnd.android.package-archive";
+        return "image/png";
+    }
     @Override public Cursor query(Uri u, String[] p, String s, String[] a, String o) { return null; }
     @Override public Uri insert(Uri u, ContentValues v) { return null; }
     @Override public int delete(Uri u, String s, String[] a) { return 0; }

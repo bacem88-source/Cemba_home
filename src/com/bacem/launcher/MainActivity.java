@@ -911,6 +911,10 @@ public class MainActivity extends Activity {
         // kid-safe home and restart the minute tick, or the home would come
         // back full and unguarded and the limit/bedtime would never fire.
         try { if (kidsMode()) { applyKidsMode(); startKidsTick(); } } catch (Throwable t) {}
+        // v4.31: check GitHub once a day for a newer Cemba Home (see
+        // checkForUpdates). Throttled by prefs so it does not hit the
+        // network on every resume.
+        try { maybeCheckForUpdates(); } catch (Throwable t) {}
     }
 
     @Override protected void onPause() {
@@ -959,6 +963,151 @@ public class MainActivity extends Activity {
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
             startActivity(i);
         } catch (Exception e) {}
+    }
+
+    // ---------- v4.31: automatic updates from GitHub ----------
+    // The source lives in a public GitHub repo (bacem88-source/Cemba_home).
+    // version.json on the main branch carries the latest versionCode,
+    // versionName, a download URL for the APK and release notes. The app
+    // checks it once a day (and on demand from Settings > Box), and if a
+    // newer version exists it offers to download and install it. Android
+    // still asks the user to confirm the install (unknown-apps prompt),
+    // so an update is never silent -- it is one tap.
+    static final String UPDATE_URL = "https://raw.githubusercontent.com/bacem88-source/Cemba_home/main/version.json";
+    static final long UPDATE_CHECK_INTERVAL_MS = 24L * 60 * 60 * 1000;
+
+    int installedVersionCode() {
+        try {
+            return getPackageManager().getPackageInfo(getPackageName(), 0).versionCode;
+        } catch (Exception e) { return 0; }
+    }
+
+    String installedVersionName() {
+        try {
+            return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+        } catch (Exception e) { return ""; }
+    }
+
+    String appVersionName() { return installedVersionName(); }
+
+    void maybeCheckForUpdates() {
+        SharedPreferences p = getSharedPreferences("ui", MODE_PRIVATE);
+        long last = p.getLong("update_last_check", 0);
+        if (System.currentTimeMillis() - last < UPDATE_CHECK_INTERVAL_MS) return;
+        p.edit().putLong("update_last_check", System.currentTimeMillis()).apply();
+        checkForUpdates(false);
+    }
+
+    void checkForUpdates(final boolean manual) {
+        new Thread(new Runnable() {
+            @Override public void run() {
+                String err = null;
+                int remoteCode = 0;
+                String remoteName = "";
+                String apkUrl = "";
+                String notes = "";
+                try {
+                    java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(UPDATE_URL).openConnection();
+                    c.setConnectTimeout(10000);
+                    c.setReadTimeout(15000);
+                    c.setRequestMethod("GET");
+                    c.setRequestProperty("Accept", "application/json");
+                    int code = c.getResponseCode();
+                    if (code >= 400) throw new Exception("HTTP " + code);
+                    String body = Tubi.readBody(c);
+                    Object parsed = Iptv.parseJson(body);
+                    if (!(parsed instanceof java.util.Map)) throw new Exception("bad version file");
+                    java.util.Map<?, ?> m = (java.util.Map<?, ?>) parsed;
+                    Object vc = m.get("versionCode");
+                    if (vc instanceof Number) remoteCode = ((Number) vc).intValue();
+                    else if (vc != null) remoteCode = Integer.parseInt(String.valueOf(vc).trim());
+                    Object vn = m.get("versionName");
+                    if (vn != null) remoteName = String.valueOf(vn);
+                    Object au = m.get("apkUrl");
+                    if (au != null) apkUrl = String.valueOf(au);
+                    Object nt = m.get("notes");
+                    if (nt != null) notes = String.valueOf(nt);
+                } catch (Exception e) {
+                    err = String.valueOf(e.getMessage());
+                }
+                final int rc = remoteCode;
+                final String rn = remoteName;
+                final String au2 = apkUrl;
+                final String nt2 = notes;
+                final String err2 = err;
+                runOnUiThread(new Runnable() {
+                    @Override public void run() {
+                        if (err2 != null) {
+                            if (manual) toast("Could not check for updates");
+                            return;
+                        }
+                        int installed = installedVersionCode();
+                        if (rc > installed && au2.length() > 0) {
+                            showUpdateDialog(rn, au2, nt2);
+                        } else if (manual) {
+                            toast("You are up to date - version " + installedVersionName());
+                        }
+                    }
+                });
+            }
+        }).start();
+    }
+
+    void showUpdateDialog(final String remoteName, final String apkUrl, String notes) {
+        String msg = "Version " + remoteName + " is available";
+        if (notes != null && notes.length() > 0) msg += "\n\n" + notes;
+        msg += "\n\nDownload and install it now?";
+        new AlertDialog.Builder(this)
+            .setTitle("Cemba Home update")
+            .setMessage(msg)
+            .setPositiveButton("Download & install", new DialogInterface.OnClickListener() {
+                @Override public void onClick(DialogInterface d, int w) {
+                    downloadAndInstall(apkUrl, remoteName);
+                }
+            })
+            .setNegativeButton("Later", null)
+            .show();
+    }
+
+    void downloadAndInstall(final String apkUrl, final String remoteName) {
+        toast("Downloading update " + remoteName + "...");
+        new Thread(new Runnable() {
+            @Override public void run() {
+                String err = null;
+                java.io.File out = new java.io.File(getFilesDir(), "update.apk");
+                try {
+                    java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(apkUrl).openConnection();
+                    c.setConnectTimeout(10000);
+                    c.setReadTimeout(60000);
+                    c.setRequestMethod("GET");
+                    int code = c.getResponseCode();
+                    if (code >= 400) throw new Exception("HTTP " + code);
+                    java.io.InputStream in = c.getInputStream();
+                    java.io.FileOutputStream fos = new java.io.FileOutputStream(out);
+                    byte[] buf = new byte[8192];
+                    int n;
+                    while ((n = in.read(buf)) > 0) fos.write(buf, 0, n);
+                    fos.flush(); fos.close(); in.close();
+                } catch (Exception e) {
+                    err = String.valueOf(e.getMessage());
+                }
+                final String err2 = err;
+                runOnUiThread(new Runnable() {
+                    @Override public void run() {
+                        if (err2 != null) { toast("Download failed"); return; }
+                        try {
+                            android.net.Uri uri = android.net.Uri.parse("content://com.bacem.launcher.art/update.apk");
+                            Intent i = new Intent(Intent.ACTION_VIEW);
+                            i.setDataAndType(uri, "application/vnd.android.package-archive");
+                            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(i);
+                        } catch (Exception e) {
+                            toast("Could not open installer - allow Install unknown apps for Cemba Home first");
+                        }
+                    }
+                });
+            }
+        }).start();
     }
 
     @Override public void onBackPressed() {
@@ -3038,6 +3187,8 @@ public class MainActivity extends Activity {
                 new Runnable() { @Override public void run() { launchPackage("com.android.vending"); } });
             settingsRow(settingsContentCol, "Google TV Home", "The box's original home screen",
                 new Runnable() { @Override public void run() { launchPackage("com.google.android.apps.tv.launcherx"); } });
+            settingsRow(settingsContentCol, "Check for updates", "Version " + appVersionName() + " - tap to check GitHub for a newer Cemba Home",
+                new Runnable() { @Override public void run() { checkForUpdates(true); } });
         }
     }
 
