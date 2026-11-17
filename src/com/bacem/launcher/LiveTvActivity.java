@@ -31,6 +31,7 @@ public class LiveTvActivity extends Activity {
     // PlayerActivity; kind 2 = provider HLS; kind 3 = provider hint row.
     // kind 4 = series season, opens the Cemba episode list (v4.36).
     // kind 5 = series title, opens the season list (v4.38).
+    // kind 6 = web site, opens the built-in WebViewActivity (v4.44).
     // ua = optional User-Agent override for the player (L'Equipe needs a
     // desktop Chrome UA); null means the default.
     static class Ch {
@@ -226,10 +227,14 @@ public class LiveTvActivity extends Activity {
         // v4.40: Conan -- 17 verified full Arabic episodes (the max
         // found on YouTube after a full 1-100 sweep), same title-card
         // flow as Choufli Hal.
-        new Ch("Conan", "Kids series - Arabic dubbed, 17 episodes", "https://www.youtube.com/results?search_query=\u0627\u0644\u0645\u062d\u0642\u0642+\u0643\u0648\u0646\u0627\u0646+\u0645\u062f\u0628\u0644\u062c", 0xFFD32F2F, 0, "CN", 5, null, "conan"),
+        new Ch("Conan", "Kids series - Arabic dubbed, 16 episodes", "https://www.youtube.com/results?search_query=\u0627\u0644\u0645\u062d\u0642\u0642+\u0643\u0648\u0646\u0627\u0646+\u0645\u062f\u0628\u0644\u062c", 0xFFD32F2F, 0, "CN", 5, null, "conan"),
         // v4.43: Smurfs -- official Smurfs Arabic channel, 11 verified
         // full remastered episodes, same title-card flow as Conan.
         new Ch("Smurfs", "Kids series - Arabic dubbed, 11 episodes", "https://www.youtube.com/playlist?list=PL9gKglGE2NdF68U5Oaz6Ncv6qQJdVNwEU", 0xFF2196F3, 0, "SM", 5, null, "smurfs"),
+        // v4.44: Cartoony -- the whole cartoony.net library (Conan parts
+        // 1-7, ~352 episodes, plus many other cartoons) inside Cemba as
+        // a full-screen web view; the site's own player plays the video.
+        new Ch("Cartoony", "Cartoons site - Conan + more, opens in Cemba", "https://cartoony.net/", 0xFF8E24AA, 0, "CT", 6),
     };
     static final String[] CATS = { "All channels", "Tunisia", "News \u2014 free", "Arabic", "Sport", "YouTube live", "World", "Series", "Documentary", "Movies", "Kids Movies", "Kids Series", "Kids" };
     // v4.41: Kids categories in CATS -- Kids Movies (10), Kids Series
@@ -724,7 +729,13 @@ public class LiveTvActivity extends Activity {
         if (shown.isEmpty()) return;
         Ch c = shown.get(chSel);
         if (c.kind == 3) { Toast.makeText(this, "Add your provider in Settings > My IPTV", Toast.LENGTH_SHORT).show(); return; }
-        if (c.kind == 5) {
+        if (c.kind == 6) {
+            // v4.44: a web site opens in the built-in WebView.
+            Intent i = new Intent(this, WebViewActivity.class);
+            i.putExtra("url", c.url);
+            i.putExtra("name", c.name);
+            startActivity(i);
+        } else if (c.kind == 5) {
             // v4.38: a series title opens its season list.
             String series = c.series != null ? c.series : "choufli";
             Intent i = new Intent(this, SeasonListActivity.class);
@@ -746,7 +757,11 @@ public class LiveTvActivity extends Activity {
             i.putExtra("title", c.name);
             startActivity(i);
         } else if (c.kind == 0) {
-            if (!tryCobalt(c.url)) Toast.makeText(this, "TizenTube Cobalt not installed", Toast.LENGTH_SHORT).show();
+            // v4.44: Kids profile opens YouTube in the official app;
+            // Family keeps Cobalt.
+            if (kidsMode()) {
+                if (!openYouTube(c.url)) Toast.makeText(this, "YouTube is not installed", Toast.LENGTH_SHORT).show();
+            } else if (!tryCobalt(c.url)) Toast.makeText(this, "TizenTube Cobalt not installed", Toast.LENGTH_SHORT).show();
         } else {
             Intent i = new Intent(this, PlayerActivity.class);
             i.putExtra("url", c.url);
@@ -756,16 +771,56 @@ public class LiveTvActivity extends Activity {
         }
     }
 
-    boolean tryCobalt(String url) {
-        String[] pkgs = { "io.gh.reisxd.tizentube.cobalt", "io.gh.reisxd.tizentube.cobalt.ab" };
+    // v4.44: open a YouTube URL in the official YouTube app (Kids
+    // profile). TV build first, then the phone build; raw intent last --
+    // the Bridge is off in Kids mode, so it lands in the official app.
+    boolean openYouTube(String url) {
+        String[] pkgs = { "com.google.android.youtube.tv", "com.google.android.youtube" };
         for (String pk : pkgs) {
             try {
                 Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-                i.setComponent(new ComponentName(pk, "dev.cobalt.app.MainActivity"));
-                i.putExtra("url", url);
-                // v4.38: CLEAR_TASK out (see EpisodeListActivity) -- a
-                // fresh Cobalt shows its home, not the video.
+                i.setPackage(pk);
                 i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(i);
+                return true;
+            } catch (Exception e) { /* try next */ }
+        }
+        try {
+            Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(i);
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    // v4.44 Back fix: a YouTube watch URL opens in the YouTube TV
+    // format (Cobalt's own base is youtube.com/tv) with a fresh
+    // Cobalt, so the video is the FIRST page in its history and one
+    // Back press exits to Cemba. Non-video URLs keep the old launch.
+    static String cobaltTvUrl(String url) {
+        if (url == null) return null;
+        int q = url.indexOf("v=");
+        if (q < 0) return null;
+        int end = url.indexOf('&', q);
+        String id = end < 0 ? url.substring(q + 2) : url.substring(q + 2, end);
+        if (id.length() == 0) return null;
+        return "https://www.youtube.com/tv#/watch?v=" + id;
+    }
+
+    boolean tryCobalt(String url) {
+        String[] pkgs = { "io.gh.reisxd.tizentube.cobalt", "io.gh.reisxd.tizentube.cobalt.ab" };
+        String tv = cobaltTvUrl(url);
+        String open = tv != null ? tv : url;
+        for (String pk : pkgs) {
+            try {
+                Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(open));
+                i.setComponent(new ComponentName(pk, "dev.cobalt.app.MainActivity"));
+                i.putExtra("url", open);
+                if (tv != null) {
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                } else {
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                }
                 startActivity(i);
                 return true;
             } catch (Exception e) { /* try next */ }

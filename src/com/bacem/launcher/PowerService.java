@@ -28,6 +28,33 @@ public class PowerService extends AccessibilityService {
     // throttle stops the duplicate. A deliberate re-press takes a child
     // over a second, so it is still caught.
     long lastLockdownHome = 0;
+    // v4.44: the lockdown above only fires on a window change. If a video
+    // app is ALREADY open when the timer runs out, no window changes and
+    // nothing kicks it. So remember the last foreground package and
+    // re-check it on a tick: if the timer is up and a video app is still
+    // in front, kick to Cemba Kids home.
+    String lastPkg = "";
+    android.os.Handler tickHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    Runnable tickR = new Runnable() {
+        @Override public void run() {
+            try {
+                if (timerUp(PowerService.this) && isLockdownTarget(lastPkg)) kickHome();
+            } catch (Throwable t) { /* ignore */ }
+            tickHandler.postDelayed(this, 20000);
+        }
+    };
+    void kickHome() {
+        long now = System.currentTimeMillis();
+        if (now - lastLockdownHome < 500) return;
+        lastLockdownHome = now;
+        try {
+            Intent i = new Intent(this, MainActivity.class);
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(i);
+        } catch (Throwable t2) {
+            performGlobalAction(GLOBAL_ACTION_HOME);
+        }
+    }
     @Override public void onServiceConnected() {
         receiver = new BroadcastReceiver() {
             @Override public void onReceive(Context ctx, Intent intent) {
@@ -53,6 +80,7 @@ public class PowerService extends AccessibilityService {
         } else {
             registerReceiver(receiver, f);
         }
+        tickHandler.postDelayed(tickR, 20000);
     }
     // v4.31: timer-up lockdown, denylist (not allowlist). v4.29 used an
     // allowlist -- it kicked home for EVERY window that was not Cemba or
@@ -73,23 +101,10 @@ public class PowerService extends AccessibilityService {
             if (pkgCs == null) return;
             String pkg = pkgCs.toString();
             if (pkg.length() == 0) return;
+            lastPkg = pkg;
             if (!isLockdownTarget(pkg)) return;
             if (!timerUp(this)) return;
-            long now = System.currentTimeMillis();
-            if (now - lastLockdownHome < 500) return;
-            lastLockdownHome = now;
-            // Bring Cemba forward explicitly, instead of the system HOME
-            // action. GLOBAL_ACTION_HOME goes to whatever the box thinks
-            // the default launcher is -- if that ever slips to Google TV
-            // Home, the child lands there and can open YouTube again.
-            // Starting MainActivity always lands on Cemba Kids home.
-            try {
-                Intent i = new Intent(this, MainActivity.class);
-                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                startActivity(i);
-            } catch (Throwable t2) {
-                performGlobalAction(GLOBAL_ACTION_HOME);
-            }
+            kickHome();
         } catch (Throwable t) { /* lockdown is best-effort */ }
     }
 
@@ -143,6 +158,7 @@ public class PowerService extends AccessibilityService {
     }
     @Override public void onInterrupt() {}
     @Override public void onDestroy() {
+        try { tickHandler.removeCallbacks(tickR); } catch (Exception e) {}
         try { if (receiver != null) unregisterReceiver(receiver); } catch (Exception e) {}
         super.onDestroy();
     }

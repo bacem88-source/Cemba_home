@@ -3,9 +3,11 @@ package com.bacem.launcher;
 /** Episode list for a series season (v4.36): opened from the Live TV
  *  guide's Series category. Shows every episode of the season as a
  *  vertical list inside Cemba. Tapping an episode opens it in TizenTube
- *  Cobalt (YouTube videos cannot play in Cemba's own HLS player).
- *  Pressing Back in Cobalt returns here, to the episode list.
- *  DPAD only: Up/Down moves, OK plays, Back returns to the guide. */
+ *  Cobalt in Family mode, in the official YouTube app in Kids mode
+ *  (v4.44 -- the list never checked Kids mode before, so Kids opened
+ *  Cobalt from the guide). YouTube videos cannot play in Cemba's own
+ *  HLS player. Pressing Back in Cobalt returns here, to the episode
+ *  list. DPAD only: Up/Down moves, OK plays, Back returns to the guide. */
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Intent;
@@ -46,7 +48,7 @@ public class EpisodeListActivity extends Activity {
         root.addView(head);
 
         TextView sub = new TextView(this);
-        sub.setText(eps.length + " episodes - pick one to play in Cobalt");
+        sub.setText(eps.length + " episodes - pick one to play in " + (kidsMode() ? "YouTube" : "Cobalt"));
         sub.setTextColor(0xFFB0BEC5);
         sub.setTextSize(18);
         sub.setPadding(0, 8, 0, 24);
@@ -83,8 +85,17 @@ public class EpisodeListActivity extends Activity {
             });
             row.setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) {
-                    if (!tryCobalt("https://www.youtube.com/watch?v=" + ep.id))
+                    String url = "https://www.youtube.com/watch?v=" + ep.id;
+                    // v4.44: Kids profile opens in the official YouTube
+                    // app (signed into Jannah's Kids profile); Family
+                    // keeps Cobalt. The episode list never checked Kids
+                    // mode before, so Kids opened Cobalt from the guide.
+                    if (kidsMode()) {
+                        if (!openYouTube(url))
+                            Toast.makeText(EpisodeListActivity.this, "YouTube is not installed", Toast.LENGTH_SHORT).show();
+                    } else if (!tryCobalt(url)) {
                         Toast.makeText(EpisodeListActivity.this, "TizenTube Cobalt not installed", Toast.LENGTH_SHORT).show();
+                    }
                 }
             });
             list.addView(row);
@@ -92,19 +103,63 @@ public class EpisodeListActivity extends Activity {
         }
     }
 
-    boolean tryCobalt(String url) {
-        String[] pkgs = { "io.gh.reisxd.tizentube.cobalt", "io.gh.reisxd.tizentube.cobalt.ab" };
+    boolean kidsMode() {
+        return getSharedPreferences("ui", MODE_PRIVATE).getBoolean("kids_mode", false);
+    }
+
+    // v4.44: open a YouTube video in the official YouTube app (Kids
+    // profile). Targets the TV build first, then the phone build; the
+    // raw intent is the fallback -- the Bridge is off in Kids mode, so
+    // it lands in the official app, not Cobalt.
+    boolean openYouTube(String url) {
+        String[] pkgs = { "com.google.android.youtube.tv", "com.google.android.youtube" };
         for (String pk : pkgs) {
             try {
                 Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-                i.setComponent(new ComponentName(pk, "dev.cobalt.app.MainActivity"));
-                i.putExtra("url", url);
-                // v4.38: CLEAR_TASK is OUT -- it forced a fresh Cobalt
-                // every time, and a fresh Cobalt shows its home instead
-                // of the video. NEW_TASK only (as in v4.36) lets the
-                // running Cobalt play the video. Back walks YouTube
-                // screens again for now -- that needs a different fix.
+                i.setPackage(pk);
                 i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(i);
+                return true;
+            } catch (Exception e) { /* try next */ }
+        }
+        try {
+            Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(i);
+            return true;
+        } catch (Exception e) { return false; }
+    }
+
+    // v4.44 Back fix: a YouTube watch URL opens in the YouTube TV
+    // format (Cobalt's own base is youtube.com/tv) with a fresh
+    // Cobalt, so the video is the FIRST page in its history and one
+    // Back press exits to Cemba. Non-video URLs (channels, live,
+    // search) keep the old launch -- they are pages, not videos.
+    static String cobaltTvUrl(String url) {
+        if (url == null) return null;
+        int q = url.indexOf("v=");
+        if (q < 0) return null;
+        int end = url.indexOf('&', q);
+        String id = end < 0 ? url.substring(q + 2) : url.substring(q + 2, end);
+        if (id.length() == 0) return null;
+        return "https://www.youtube.com/tv#/watch?v=" + id;
+    }
+
+    boolean tryCobalt(String url) {
+        String[] pkgs = { "io.gh.reisxd.tizentube.cobalt", "io.gh.reisxd.tizentube.cobalt.ab" };
+        String tv = cobaltTvUrl(url);
+        String open = tv != null ? tv : url;
+        for (String pk : pkgs) {
+            try {
+                Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(open));
+                i.setComponent(new ComponentName(pk, "dev.cobalt.app.MainActivity"));
+                i.putExtra("url", open);
+                if (tv != null) {
+                    // Video: fresh Cobalt straight to the video page.
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                } else {
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                }
                 startActivity(i);
                 return true;
             } catch (Exception e) { /* try next */ }

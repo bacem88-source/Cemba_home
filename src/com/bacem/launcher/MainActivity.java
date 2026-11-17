@@ -5769,18 +5769,36 @@ public class MainActivity extends Activity {
         return false;
     }
 
+    // v4.44 Back fix: a YouTube watch URL opens in the YouTube TV
+    // format (Cobalt's own base is youtube.com/tv) with a fresh
+    // Cobalt, so the video is the FIRST page in its history and one
+    // Back press exits to Cemba. Non-video URLs keep the old launch.
+    static String cobaltTvUrl(String url) {
+        if (url == null) return null;
+        int q = url.indexOf("v=");
+        if (q < 0) return null;
+        int end = url.indexOf('&', q);
+        String id = end < 0 ? url.substring(q + 2) : url.substring(q + 2, end);
+        if (id.length() == 0) return null;
+        return "https://www.youtube.com/tv#/watch?v=" + id;
+    }
+
     boolean tryCobalt(String url) {
         String[] pkgs = { "io.gh.reisxd.tizentube.cobalt", "io.gh.reisxd.tizentube.cobalt.ab" };
+        String tv = cobaltTvUrl(url);
+        String open = tv != null ? tv : url;
         for (String pk : pkgs) {
             try {
-                Intent i = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url));
+                Intent i = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(open));
                 i.setComponent(new android.content.ComponentName(pk, "dev.cobalt.app.MainActivity"));
-                i.putExtra("url", url);
-                // v4.38: CLEAR_TASK out (see EpisodeListActivity) -- a
-                // fresh Cobalt shows its home, not the video.
+                i.putExtra("url", open);
                 // bringCobaltToFront is untouched -- it must keep the
                 // playing video.
-                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                if (tv != null) {
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                } else {
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                }
                 startActivity(i);
                 return true;
             } catch (Exception e) { /* try next */ }

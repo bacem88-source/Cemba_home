@@ -4,10 +4,10 @@ package com.bacem.launcher;
 // playlists (pulled 2026-11-17). One video per episode number; the
 // 2006 playlist listed two episodes twice, the extra copies are dropped.
 // Titles are stored as unicode escapes because the build compiles US-ASCII.
-// Total: 290 items -- Choufli Hal 134 (2005: 30, 2006: 30, 2007: 30,
+// Total: 289 items -- Choufli Hal 134 (2005: 30, 2006: 30, 2007: 30,
 // 2008: 29, 2009: 15) + El Khottab Al Bab 30 (S1: 15, S2: 15)
 // + Pokemon 90 (S1 Indigo League: 50, S2 Orange Islands: 40)
-// + Conan Movies 8 + Conan episodes 17 (partial list)
+// + Conan Movies 8 + Conan episodes 16 (partial list)
 // + Smurfs episodes 11.
 // 2008 episode 12 is not in its YouTube playlist.
 public class Series {
@@ -319,13 +319,12 @@ public class Series {
     // v4.40: Conan episodes -- partial list (his ask: same as Choufli
     // Hal, one title card that opens the episodes). No clean official
     // source exists: full Arabic episodes live in the Spacetoon Go app,
-    // and on YouTube they are scattered fan uploads. These 17 are all
+    // and on YouTube they are scattered fan uploads. These 16 are all
     // the verified full episodes (oEmbed 200, ~21-24 min each) found
     // after sweeping every episode number 1-100 plus spot checks to 250
     // on 2026-11-17; duplicates dropped. Ep 60 is ~19 min, may miss the
     // opening/closing. 84 of the first 100 are simply not on YouTube.
     public static final Ep[] EP_CONAN_S1 = {
-        new Ep("vssmdZSLtWk", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 1"),
         new Ep("eyjTG25bOdw", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 6"),
         new Ep("qfKr7MNUn9Y", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 7"),
         new Ep("Cu8apFuBhjs", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 10"),
