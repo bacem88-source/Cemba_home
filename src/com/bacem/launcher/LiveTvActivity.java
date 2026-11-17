@@ -121,7 +121,19 @@ public class LiveTvActivity extends Activity {
         new Ch("TV5Monde", "General - French - free", "https://n-5-2.eu.cdn-redge.media/livehls/oeu/mt/live/tv5_monde_fbs/live.livx/playlist.m3u8", 0xFF0D47A1, 0, "T5", 1),
         new Ch("PBS Kids", "Kids - English - free", "https://livestream.pbskids.org/out/v1/14507d931bbe48a69287e4850e53443c/est.m3u8", 0xFF8E24AA, 0, "PK", 1),
     };
-    static final String[] CATS = { "All channels", "Tunisia", "News \u2014 free", "Arabic", "Sport", "YouTube live", "World" };
+    // v4.35: series on YouTube (VOD playlists, kind 0 = opens in Cobalt).
+    // Choufli Hal: Tunisian sitcom, 6 seasons / 135 episodes, 2005-2009.
+    // Season by season (his ask), using the season playlists the
+    // Choufli Hal channel itself links to. Watania Replay also has one
+    // official playlist for the whole sitcom, but he wants it by season.
+    static final Ch[] SERIES = {
+        new Ch("Choufli Hal 2005", "Season 1 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q8dUWcl-f1M5kf_KhwQAhNY", 0xFFC62828, 0, "05", 0),
+        new Ch("Choufli Hal 2006", "Season 2 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q_2aTOKeMhkDhfR-il5S8Cn", 0xFFC62828, 0, "06", 0),
+        new Ch("Choufli Hal 2007", "Season 3 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q8RgjOKZB9t1KJHmRDio6u3", 0xFFC62828, 0, "07", 0),
+        new Ch("Choufli Hal 2008", "Season 4 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q_n8dmyc_2QOwiP5sN2ax6D", 0xFFC62828, 0, "08", 0),
+        new Ch("Choufli Hal 2009", "Season 5 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q-fUq2C2-_82RcQ1-I9UPd7", 0xFFC62828, 0, "09", 0),
+    };
+    static final String[] CATS = { "All channels", "Tunisia", "News \u2014 free", "Arabic", "Sport", "YouTube live", "World", "Series" };
     static final int GRID_COLS = 4;
 
     LinearLayout catCol, gridCol;
@@ -286,7 +298,7 @@ public class LiveTvActivity extends Activity {
     void buildChannels() {
         shown.clear();
         if (cat == 0) {
-            addAll(YT); addAll(FREE); addAll(AR_NEWS); addAll(AR_GEN); addAll(SPORT); addAll(WORLD);
+            addAll(YT); addAll(FREE); addAll(AR_NEWS); addAll(AR_GEN); addAll(SPORT); addAll(WORLD); addAll(SERIES);
             if (iptvConfiguredHere()) {
                 if (iptv.isEmpty()) {
                     shown.add(new Ch(iptvLoading ? "Loading provider channels..." : "No provider channels found", iptvLoading ? "Please wait" : "Test the connection in Settings > My IPTV", null, 0xFF3A4152, 0, "?", 3));
@@ -299,7 +311,8 @@ public class LiveTvActivity extends Activity {
         else if (cat == 3) { addAll(AR_NEWS); addAll(AR_GEN); }
         else if (cat == 4) { addAll(SPORT); }
         else if (cat == 5) { addAll(YT); }
-        else { addAll(WORLD); }
+        else if (cat == 6) { addAll(WORLD); }
+        else { addAll(SERIES); }
         // v3.69: search filter -- when a query is set, keep only channels
         // whose name contains it (case-insensitive), across the category.
         if (searchQuery != null && searchQuery.length() > 0) {

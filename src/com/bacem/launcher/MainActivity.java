@@ -5436,6 +5436,14 @@ public class MainActivity extends Activity {
             @Override public void run() { openCobaltSearch("cartoons for kids"); }}));
         kidsRow.addView(staticCard("Learn & Play", "Letters, numbers, colours", "LEARN", 0xFF2E7D32, R.drawable.tile_kids, new Runnable() {
             @Override public void run() { openCobaltSearch("learning videos for kids"); }}));
+        // v4.35: Conan + Pokemon search shortcuts in the Kids watching
+        // tab (his ask). Both open a Cobalt search for the Arabic-dubbed
+        // episodes; he will see later how to improve them (e.g. direct
+        // channel links).
+        kidsRow.addView(staticCard("Conan", "Detective Conan in Arabic", "CONAN", 0xFFD32F2F, R.drawable.tile_kids, new Runnable() {
+            @Override public void run() { openCobaltSearch("\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 \u0645\u062f\u0628\u0644\u062c"); }}));
+        kidsRow.addView(staticCard("Pokemon", "Pokemon in Arabic", "POKEMON", 0xFFF9A825, R.drawable.tile_kids, new Runnable() {
+            @Override public void run() { openCobaltSearch("\u0628\u0648\u0643\u064a\u0645\u0648\u0646 \u0645\u062f\u0628\u0644\u062c"); }}));
     }
 
     // Adds song picks to the Music row (deduped through musicSeen); if the row would
