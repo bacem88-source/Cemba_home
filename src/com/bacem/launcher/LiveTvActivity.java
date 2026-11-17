@@ -58,6 +58,13 @@ public class LiveTvActivity extends Activity {
         new Ch("Al Arabiya English", "News - English - free", "https://live.alarabiya.net/alarabiapublish/english/playlist_dvr.m3u8", 0xFFB71C1C, 0, "AA", 1),
         new Ch("Sky News Arabia", "News - Arabic - free", "https://live-stream.skynewsarabia.com/c-horizontal-channel/horizontal-stream/index.m3u8", 0xFF6A1B9A, 0, "SN", 1),
         new Ch("Africanews English", "News - English - free", "https://cdn-euronews.akamaized.net/live/eds/africanews-en/25049/index.m3u8", 0xFF00695C, 0, "AN", 1),
+        new Ch("ABC News", "News - English - free", "https://abc-news-dmd-streams-1.akamaized.net/out/v1/701126012d044971b3fa89406a440133/index.m3u8", 0xFF0D47A1, 0, "AB", 1),
+        new Ch("CNN International", "News - English - free", "https://d3bp6dwmpbdajl.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-ury0meh5m4nzm/index.m3u8", 0xFFB71C1C, 0, "CN", 1),
+        new Ch("DW English", "News - English - free", "https://amg01644-amg01644c1-amgplt0343.playout.now3.amagi.tv/ts-eu-w1-n2/playlist/amg01644-amg01644c1-amgplt0343/playlist.m3u8", 0xFF1565C0, 0, "DW", 1),
+        new Ch("NBC News NOW", "News - English - free", "https://d1si3n1st4nkgb.cloudfront.net/10502/88896001/hls/master.m3u8?ads.xumo_channelId=88896001", 0xFF6A1B9A, 0, "NB", 1),
+        new Ch("Bloomberg TV", "Business - English - free", "http://23.237.104.106:8080/USA_BLOOMBERG/index.m3u8", 0xFF00897B, 0, "BB", 1),
+        new Ch("CNews", "News - French - free", "https://raw.githubusercontent.com/Paradise-91/ParaTV/main/streams/canalplus/cnews-dm.m3u8", 0xFF37474F, 0, "CN", 1),
+        new Ch("Euronews French", "News - French - free", "https://2f6c5bf4.wurl.com/master/f36d25e7e52f1ba8d7e56eb859c636563214f541/UmxheHhUVi1ldV9FdXJvbmV3c0ZyYW5jYWlzX0hMUw/playlist.m3u8", 0xFF5D4037, 0, "EF", 1),
     };
     // v3.66: free Arabic news (verified live 2026-11-13).
     static final Ch[] AR_NEWS = {
@@ -67,6 +74,11 @@ public class LiveTvActivity extends Activity {
         new Ch("TRT Arabi", "News - Arabic - free", "https://tv-trtarabi.medya.trt.com.tr/master.m3u8", 0xFFC62828, 0, "TA", 1),
         new Ch("Medi1TV", "News - Morocco - free", "https://cdn.live.easybroadcast.io/abr_corp/83_medi1tv-arabic_g90v4ec/playlist.m3u8", 0xFF2E7D32, 0, "M1", 1),
         new Ch("Asharq News", "News - Arabic - free", "https://live-news.asharq.com/asharq.m3u8", 0xFF37474F, 0, "AN", 1),
+        new Ch("Al Jazeera 2", "News - Arabic - free", "https://live-hls-web-aja2-gcp.thehlive.com/AJA2/index.m3u8", 0xFF00897B, 0, "J2", 1),
+        new Ch("Al Jazeera Mubasher", "News - Arabic - free", "https://live-hls-apps-ajm-fa.getaj.net/AJM/index.m3u8", 0xFF0F2A44, 0, "JM", 1),
+        new Ch("Al Mayadeen TV", "News - Arabic - free", "https://mdnlv.cdn.octivid.com/almdn/smil:mpegts.stream.smil/playlist.m3u8", 0xFFB71C1C, 0, "MY", 1),
+        new Ch("Al Arabiya Business", "Business - Arabic - free", "https://live.alarabiya.net/alarabiapublish/aswaaq.smil/playlist.m3u8", 0xFF6A1B9A, 0, "AB", 1),
+        new Ch("Al Arabiya Programs", "Documentary - Arabic - free", "https://live.alarabiya.net/alarabiapublish/aaprograms.smil/playlist.m3u8", 0xFF37474F, 0, "AP", 1),
     };
     // v3.66: free Arabic general (Watania 1/2 are direct HLS now, no YouTube).
     static final Ch[] AR_GEN = {
@@ -76,9 +88,18 @@ public class LiveTvActivity extends Activity {
         new Ch("Al Saudiya", "Saudi - general - free", "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-saudi-tv/2ad66056b51fd8c1b624854623112e43/index.m3u8", 0xFF00695C, 0, "SA", 1),
         new Ch("KTV 1", "Kuwait - general - free", "https://kwtktv1ta.cdn.mangomolo.com/ktv1/smil:ktv1.stream.smil/chunklist.m3u8", 0xFF5D4037, 0, "K1", 1),
         new Ch("MBC Masr", "Egypt - shows - free", "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-masr/956eac069c78a35d47245db6cdbb1575/index.m3u8", 0xFFAD1457, 0, "MM", 1),
+        new Ch("Asharq Documentary", "Documentary - Arabic - free", "https://svs.itworkscdn.net/asharqdocumentarylive/asharqdocumentary.smil/playlist_dvr.m3u8", 0xFF5D4037, 0, "AD", 1),
+        new Ch("Asharq Discovery", "Documentary - Arabic - free", "https://svs.itworkscdn.net/asharqdiscoverylive/asharqd.smil/playlist_dvr.m3u8", 0xFF6A1B9A, 0, "AS", 1),
+        new Ch("MBC 4", "Entertainment - Arabic - free", "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-4/24f134f1cd63db9346439e96b86ca6ed/index.m3u8", 0xFFAD1457, 0, "M4", 1),
+        new Ch("MTV Lebanon", "General - Lebanon - free", "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mtv-lebanon/b8ebb2a5affb812f1541712adde10e26/index.m3u8", 0xFF1565C0, 0, "ML", 1),
+        new Ch("Al Jadeed", "General - Lebanon - free", "http://185.9.2.18/chid_391/mono.m3u8", 0xFF2E7D32, 0, "JD", 1),
     };
-    // v3.66: free sport (verified live 2026-11-13). No beIN/ESPN/Sky/DAZN --
-    // those are paid channels; only free-to-air sport is bundled here.
+    // v3.66: free sport (verified live 2026-11-13). beIN Sports 1 added
+    // 2026-11-17 at his explicit request -- he showed it playing in Morph TV
+    // (Sports list #5) and asked for it in Cemba Home. It is a free restream,
+    // not a licensed beIN feed; the stream below was verified live 2026-11-17.
+    // No ESPN/Sky/DAZN -- those are paid channels; only free-to-air sport
+    // is bundled here otherwise.
     static final Ch[] SPORT = {
         new Ch("KTV Sport", "Kuwait - sport - free", "https://kwtspta.cdn.mangomolo.com/sp/smil:sp.stream.smil/chunklist.m3u8", 0xFF1B5E20, 0, "KS", 1),
         new Ch("KTV Sport Plus", "Kuwait - sport - free", "https://kwtsplta.cdn.mangomolo.com/spl/smil:spl.stream.smil/chunklist.m3u8", 0xFF2E7D32, 0, "KP", 1),
@@ -86,12 +107,21 @@ public class LiveTvActivity extends Activity {
         new Ch("Al Iraqia Sport", "Iraq - sport - free", "https://imn-live.esite-lab.com/hls/iraqia-sports-1.m3u8", 0xFF6A1B9A, 0, "IS", 1),
         new Ch("Bahrain Sports 1", "Bahrain - sport - free", "https://5c7b683162943.streamlock.net/live/ngrp:sportsone_all/playlist.m3u8", 0xFFEF6C00, 0, "B1", 1),
         new Ch("Bahrain Sports 2", "Bahrain - sport - free", "https://5c7b683162943.streamlock.net/live/ngrp:bahrainsportstwo_all/playlist.m3u8", 0xFF00897B, 0, "B2", 1),
+        new Ch("beIN Sports 1", "Sport - beIN - free restream", "https://cp11.adabmedia.com/hls2/bein1.m3u8", 0xFF6A1B9A, 0, "b1", 1),
         new Ch("Red Bull TV", "Action sport - free", "https://3ea22335.wurl.com/master/f36d25e7e52f1ba8d7e56eb859c636563214f541/UmFrdXRlblRWLWdiX1JlZEJ1bGxUVl9ITFM/playlist.m3u8", 0xFFC62828, 0, "RB", 1),
         new Ch("FIFA+", "Football - 24/7 - free", "https://d2w9q46ikgrcwx.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-of5cbk3sav3w5/v1/sysdata_s_p_a_fifa_7/samsungheadend_us/latest/main/hls/playlist.m3u8", 0xFF0D47A1, 0, "F+", 1),
         new Ch("Sportitalia", "Italy - football - free", "https://edge-001.streamup.eu/sportitalia/sihd_abr/playlist.m3u8", 0xFF1B5E20, 0, "SI", 1),
         new Ch("L'Equipe", "France - sport - free", "https://dq37unyetkpcz.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-m04j89j7k5gtp/LEquipe_FR.m3u8", 0xFFB71C1C, 0, "LE", 1, DESK_UA),
     };
-    static final String[] CATS = { "All channels", "Tunisia", "News \u2014 free", "Arabic", "Sport", "YouTube live" };
+    // v4.32: free world channels (verified live 2026-11-17) -- French/English
+    // general, not news, so they live here instead of the News row.
+    static final Ch[] WORLD = {
+        new Ch("RMC Decouverte", "Documentary - French - free", "https://d16zzycxcd0m0r.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-hixvx5kymecr9/RMC_Decouverte_FR.m3u8", 0xFF1B5E20, 0, "RD", 1),
+        new Ch("RMC Story", "Entertainment - French - free", "https://d15aro46bnpfm8.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-fqkqiax1078up/RMC_Story_FR.m3u8", 0xFFEF6C00, 0, "RS", 1),
+        new Ch("TV5Monde", "General - French - free", "https://n-5-2.eu.cdn-redge.media/livehls/oeu/mt/live/tv5_monde_fbs/live.livx/playlist.m3u8", 0xFF0D47A1, 0, "T5", 1),
+        new Ch("PBS Kids", "Kids - English - free", "https://livestream.pbskids.org/out/v1/14507d931bbe48a69287e4850e53443c/est.m3u8", 0xFF8E24AA, 0, "PK", 1),
+    };
+    static final String[] CATS = { "All channels", "Tunisia", "News \u2014 free", "Arabic", "Sport", "YouTube live", "World" };
     static final int GRID_COLS = 4;
 
     LinearLayout catCol, gridCol;
@@ -256,7 +286,7 @@ public class LiveTvActivity extends Activity {
     void buildChannels() {
         shown.clear();
         if (cat == 0) {
-            addAll(YT); addAll(FREE); addAll(AR_NEWS); addAll(AR_GEN); addAll(SPORT);
+            addAll(YT); addAll(FREE); addAll(AR_NEWS); addAll(AR_GEN); addAll(SPORT); addAll(WORLD);
             if (iptvConfiguredHere()) {
                 if (iptv.isEmpty()) {
                     shown.add(new Ch(iptvLoading ? "Loading provider channels..." : "No provider channels found", iptvLoading ? "Please wait" : "Test the connection in Settings > My IPTV", null, 0xFF3A4152, 0, "?", 3));
@@ -268,7 +298,8 @@ public class LiveTvActivity extends Activity {
         else if (cat == 2) { addAll(FREE); addAll(AR_NEWS); }
         else if (cat == 3) { addAll(AR_NEWS); addAll(AR_GEN); }
         else if (cat == 4) { addAll(SPORT); }
-        else { addAll(YT); }
+        else if (cat == 5) { addAll(YT); }
+        else { addAll(WORLD); }
         // v3.69: search filter -- when a query is set, keep only channels
         // whose name contains it (case-insensitive), across the category.
         if (searchQuery != null && searchQuery.length() > 0) {
