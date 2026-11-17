@@ -4,9 +4,10 @@ package com.bacem.launcher;
 // playlists (pulled 2026-11-17). One video per episode number; the
 // 2006 playlist listed two episodes twice, the extra copies are dropped.
 // Titles are stored as unicode escapes because the build compiles US-ASCII.
-// Total: 254 episodes -- Choufli Hal 134 (2005: 30, 2006: 30, 2007: 30,
+// Total: 262 items -- Choufli Hal 134 (2005: 30, 2006: 30, 2007: 30,
 // 2008: 29, 2009: 15) + El Khottab Al Bab 30 (S1: 15, S2: 15)
-// + Pokemon 90 (S1 Indigo League: 50, S2 Orange Islands: 40).
+// + Pokemon 90 (S1 Indigo League: 50, S2 Orange Islands: 40)
+// + Conan Movies 8 + Conan episodes 17 (partial list).
 // 2008 episode 12 is not in its YouTube playlist.
 public class Series {
     public static class Ep {
@@ -296,6 +297,54 @@ public class Series {
         new Ep("A4pBehExNAM", "Pok\u00e9mon - Snack Attack"),
         new Ep("Lr5Y5LSedaQ", "Pok\u00e9mon - A Shipful of Shivers"),
     };
+    // v4.40: Conan long movies -- like Choufli Hal, one title card
+    // (kind 5, series "conanmovies") that opens a single "Movies" season
+    // with the 8 full movies. All 8 verified public (oEmbed 200) on
+    // 2026-11-17; fan uploads, can disappear -- the list also lives in
+    // ~/workspace/kids-series/conan_movies.txt.
+    public static final Ep[] EP_CONAN_MOVIES = {
+        new Ep("7zjQ4kvHUKM", "Conan - Lupin III - dubbed - 108 min"),
+        new Ep("usjYEQNFqe8", "Conan - Crimson Letters - dubbed - 103 min"),
+        new Ep("G-9q0Do5xCE", "Conan - Sunflowers of Inferno - dubbed - 108 min"),
+        new Ep("8r2zWROiErg", "Conan - Scarlet Bullet - dubbed - 88 min"),
+        new Ep("jCruxS_PJGw", "Conan - Crimson Letter - dubbed - 103 min"),
+        new Ep("0K-rzDhqIMo", "Conan 25 - Halloween Bride - subtitled - 95 min"),
+        new Ep("Jzc3f2LhKSQ", "Conan - Full Movie HD - subtitled - 84 min"),
+        new Ep("uF5O6ZBYsIY", "Conan - Best 3 Movies (6, 5, 26) - 86 min"),
+    };
+    public static final String[][] SEASONS_CONAN_MOVIES = {
+        {"S1", "Movies"},
+    };
+    // v4.40: Conan episodes -- partial list (his ask: same as Choufli
+    // Hal, one title card that opens the episodes). No clean official
+    // source exists: full Arabic episodes live in the Spacetoon Go app,
+    // and on YouTube they are scattered fan uploads. These 17 are all
+    // the verified full episodes (oEmbed 200, ~21-24 min each) found
+    // after sweeping every episode number 1-100 plus spot checks to 250
+    // on 2026-11-17; duplicates dropped. Ep 60 is ~19 min, may miss the
+    // opening/closing. 84 of the first 100 are simply not on YouTube.
+    public static final Ep[] EP_CONAN_S1 = {
+        new Ep("vssmdZSLtWk", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 1"),
+        new Ep("eyjTG25bOdw", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 6"),
+        new Ep("qfKr7MNUn9Y", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 7"),
+        new Ep("Cu8apFuBhjs", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 10"),
+        new Ep("S_jjX5K68VI", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 14"),
+        new Ep("V0Gk5p4PZ-o", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 16"),
+        new Ep("ofqfAluoqpE", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 17"),
+        new Ep("864TqXDQh0o", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 19"),
+        new Ep("hYl2Q5KWE74", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 44"),
+        new Ep("piQV2HXsi9o", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 45"),
+        new Ep("xUanW-ZUgEI", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 60"),
+        new Ep("xdW6oTJ5Eec", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 70"),
+        new Ep("s4z7hpNwOmc", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 71"),
+        new Ep("oNuxbP675zA", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 72"),
+        new Ep("7DicAMtGwTM", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 84"),
+        new Ep("x8PA6yf1C1c", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 98"),
+        new Ep("dEAzuc1UoQk", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 204"),
+    };
+    public static final String[][] SEASONS_CONAN = {
+        {"S1", "Episodes"},
+    };
     public static final String[][] SEASONS_CHOUFLI = {
         {"2005", "Season 1 - 2005"}, {"2006", "Season 2 - 2006"},
         {"2007", "Season 3 - 2007"}, {"2008", "Season 4 - 2008"},
@@ -315,6 +364,8 @@ public class Series {
     public static String[][] seasonsFor(String series) {
         if ("khottab".equals(series)) return SEASONS_KHOTTAB;
         if ("pokemon".equals(series)) return SEASONS_POKEMON;
+        if ("conanmovies".equals(series)) return SEASONS_CONAN_MOVIES;
+        if ("conan".equals(series)) return SEASONS_CONAN;
         return SEASONS_CHOUFLI;
     }
 
@@ -327,6 +378,14 @@ public class Series {
         if ("pokemon".equals(series)) {
             if ("S1".equals(season)) return EP_POKEMON_S1;
             if ("S2".equals(season)) return EP_POKEMON_S2;
+            return new Ep[0];
+        }
+        if ("conanmovies".equals(series)) {
+            if ("S1".equals(season)) return EP_CONAN_MOVIES;
+            return new Ep[0];
+        }
+        if ("conan".equals(series)) {
+            if ("S1".equals(season)) return EP_CONAN_S1;
             return new Ep[0];
         }
         if ("2005".equals(season)) return EP_2005;

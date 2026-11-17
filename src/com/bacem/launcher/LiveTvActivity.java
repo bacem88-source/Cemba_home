@@ -154,15 +154,10 @@ public class LiveTvActivity extends Activity {
     // lives in ~/workspace/kids-series/conan_movies.txt so a dead one
     // can be swapped. The Spacetoon Go "Conan movies" playlist is
     // trailers/clips only, not full movies.
+    // v4.40: like Choufli Hal -- one title card per series (his ask).
+    // Tap "Conan Movies" to see the movies list (Series.conanmovies).
     static final Ch[] CARTOON_MOVIES = {
-        new Ch("Conan - Lupin III", "Movie - dubbed - 108 min", "https://www.youtube.com/watch?v=7zjQ4kvHUKM", 0xFF7B1FA2, 0, "C1", 0),
-        new Ch("Conan - Crimson Letters", "Movie - dubbed - 103 min", "https://www.youtube.com/watch?v=usjYEQNFqe8", 0xFF7B1FA2, 0, "C2", 0),
-        new Ch("Conan - Sunflowers of Inferno", "Movie - dubbed - 108 min", "https://www.youtube.com/watch?v=G-9q0Do5xCE", 0xFF7B1FA2, 0, "C3", 0),
-        new Ch("Conan - Scarlet Bullet", "Movie - dubbed - 88 min", "https://www.youtube.com/watch?v=8r2zWROiErg", 0xFF7B1FA2, 0, "C4", 0),
-        new Ch("Conan - Crimson Letter", "Movie - dubbed - 103 min", "https://www.youtube.com/watch?v=jCruxS_PJGw", 0xFF7B1FA2, 0, "C5", 0),
-        new Ch("Conan 25 - Halloween Bride", "Movie 25 - subtitled - 95 min", "https://www.youtube.com/watch?v=0K-rzDhqIMo", 0xFF7B1FA2, 0, "C6", 0),
-        new Ch("Conan - Full Movie HD", "Movie - subtitled - 84 min", "https://www.youtube.com/watch?v=Jzc3f2LhKSQ", 0xFF7B1FA2, 0, "C7", 0),
-        new Ch("Conan - Best 3 Movies", "Movies 6, 5, 26 - 86 min", "https://www.youtube.com/watch?v=uF5O6ZBYsIY", 0xFF7B1FA2, 0, "C8", 0),
+        new Ch("Conan Movies", "Detective Conan - 8 long movies, Arabic", "https://www.youtube.com/watch?v=7zjQ4kvHUKM", 0xFF7B1FA2, 0, "CM", 5, null, "conanmovies"),
     };
     // v4.39: Kids Live -- free kids live channels for the Kids profile
     // Live TV tab (his ask: Live TV in Kids is only kids channels --
@@ -213,6 +208,10 @@ public class LiveTvActivity extends Activity {
         // v4.39: Pokemon -- official Pokemon TV channel, S1 Indigo League
         // (50 eps) + S2 Orange Islands (40 eps), Arabic audio track.
         new Ch("Pokemon", "Kids series - 2 seasons, 90 episodes, Arabic audio", "https://www.youtube.com/playlist?list=PLRcHmntfmJ8CnSmj4C284-a1euH518aQa", 0xFFF9A825, 0, "PK", 5, null, "pokemon"),
+        // v4.40: Conan -- partial episode list (10 verified full Arabic
+        // episodes), same title-card flow as Choufli Hal. More episodes
+        // are being hunted; they will be added to Series.EP_CONAN_S1.
+        new Ch("Conan", "Kids series - Arabic dubbed, partial list", "https://www.youtube.com/results?search_query=\u0627\u0644\u0645\u062d\u0642\u0642+\u0643\u0648\u0646\u0627\u0646+\u0645\u062f\u0628\u0644\u062c", 0xFFD32F2F, 0, "CN", 5, null, "conan"),
         // v4.37: free series channels (verified live 2026-11-17) -- live
         // series TV, alongside the season episode lists above.
         new Ch("Bab Al Hara", "Series - Arabic - free", "https://shd-amg-fast.edgenextcdn.net/tx010/playlist.m3u8", 0xFF5D4037, 0, "BH", 1),

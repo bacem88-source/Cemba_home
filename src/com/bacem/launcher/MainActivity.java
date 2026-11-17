@@ -1440,13 +1440,21 @@ public class MainActivity extends Activity {
     // v3.50: a stored theme that no longer exists (Al Ahly / Zamalek were
     // removed) falls back to Gold instead of rendering unthemed.
     boolean themeKnown(String k) { for (String[] th : THEMES) if (th[1].equals(k)) return true; return false; }
+    // v4.40: the kids themes -- the only themes the Kids profile may
+    // pick (his ask: the Kids Themes tab shows kids themes only).
+    static boolean isKidsTheme(String key) {
+        return "kids".equals(key) || "pokemon".equals(key) || "conan".equals(key)
+                || "spongebob".equals(key) || "pawpatrol".equals(key);
+    }
     void fillThemePanel() {
         // v3.57: the cards live in the scrollable column (themeCardsCol), one
         // card per row filling the column -- the preview column is fixed, so
         // two cards per row no longer fit. The preview itself stays put.
+        // v4.40: in the Kids profile the picker shows only the kids themes.
         if (themeCardsCol == null) return;
         themeCardsCol.removeAllViews();
         for (int i = 0; i < THEMES.length; i++) {
+            if (kidsMode() && !isKidsTheme(THEMES[i][1])) continue;
             View card = themeCard(THEMES[i][0], THEMES[i][1]);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
             lp.topMargin = dp(10);
