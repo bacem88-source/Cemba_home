@@ -4,8 +4,9 @@ package com.bacem.launcher;
 // playlists (pulled 2026-11-17). One video per episode number; the
 // 2006 playlist listed two episodes twice, the extra copies are dropped.
 // Titles are stored as unicode escapes because the build compiles US-ASCII.
-// Total: 164 episodes -- Choufli Hal 134 (2005: 30, 2006: 30, 2007: 30,
-// 2008: 29, 2009: 15) + El Khottab Al Bab 30 (S1: 15, S2: 15).
+// Total: 254 episodes -- Choufli Hal 134 (2005: 30, 2006: 30, 2007: 30,
+// 2008: 29, 2009: 15) + El Khottab Al Bab 30 (S1: 15, S2: 15)
+// + Pokemon 90 (S1 Indigo League: 50, S2 Orange Islands: 40).
 // 2008 episode 12 is not in its YouTube playlist.
 public class Series {
     public static class Ep {
@@ -201,6 +202,100 @@ public class Series {
     // its seasons, then the episodes). Each entry is {season key, label}.
     // Choufli Hal: 5 seasons, one per year 2005-2009. El Khottab Al Bab:
     // 2 seasons, 1996 and 1997.
+    public static final Ep[] EP_POKEMON_S1 = {
+        new Ep("z3hMX65Khtg", "Pok\u00e9mon - I Choose You!"),
+        new Ep("h6LFdBPjbf4", "Pok\u00e9mon Emergency"),
+        new Ep("ObtS79k2NM4", "Pok\u00e9mon - Ash Catches a Pok\u00e9mon"),
+        new Ep("PEUL-1_zGWI", "Pok\u00e9mon - Challenge of the Samurai"),
+        new Ep("COr4zRFX0Gw", "Pok\u00e9mon - Showdown in Pewter City"),
+        new Ep("iaxkOJZxzQM", "Pok\u00e9mon - Clefairy and the Moon Stone"),
+        new Ep("RcBw50wD9_o", "Pok\u00e9mon - The Water Flowers of Cerulean City"),
+        new Ep("rcA8dMGOMCw", "Pok\u00e9mon - The Path to the Pok\u00e9mon League"),
+        new Ep("dJgDmrra3kM", "Pok\u00e9mon - The School of Hard Knocks"),
+        new Ep("nfpsYGAGzF0", "Pok\u00e9mon - Bulbasaur and the Hidden Village"),
+        new Ep("JhhupHQlal8", "Pok\u00e9mon - Charmander\u2014the Stray Pok\u00e9mon"),
+        new Ep("1TlOcjJodHw", "Pok\u00e9mon - Here Comes the Squirtle Squad"),
+        new Ep("3l1lSNQxJA0", "Pok\u00e9mon - Mystery at the Lighthouse"),
+        new Ep("Cd-3_QOIjgU", "Pok\u00e9mon - Electric Shock Showdown"),
+        new Ep("9wAKxOavTnw", "Pok\u00e9mon - Battle aboard the St. Anne"),
+        new Ep("326R_Lhua5w", "Pok\u00e9mon Shipwreck"),
+        new Ep("R-GNznqs7cI", "Pok\u00e9mon - Island of the Giant Pok\u00e9mon"),
+        new Ep("6uNYmqvF24k", "Pok\u00e9mon - Tentacool & Tentacruel l POK\u00c9MON FULL EPISODE 18"),
+        new Ep("boY4QaYhBeM", "Pok\u00e9mon - The Ghost of Maiden\u2019s Peak"),
+        new Ep("T23nJU-KwZo", "Pok\u00e9mon - Bye-Bye Butterfree"),
+        new Ep("TYhdezzyqPo", "Pok\u00e9mon - Abra and the Psychic Showdown"),
+        new Ep("hrANeOomxRw", "Pok\u00e9mon - The Tower of Terror"),
+        new Ep("9IymXcXl4fk", "Pok\u00e9mon - Haunter vs. Kadabra"),
+        new Ep("9aLD8SGoPIc", "Pok\u00e9mon - Primeape Goes Bananas"),
+        new Ep("rrQmjrZedac", "Pok\u00e9mon Scent-sation!"),
+        new Ep("XwpbJK-WE8Q", "Pok\u00e9mon - Hypno\u2019s Naptime"),
+        new Ep("lKggkmrv7q4", "Pok\u00e9mon Fashion Flash"),
+        new Ep("_LhB0LIQlQ0", "Pok\u00e9mon - The Punchy Pok\u00e9mon"),
+        new Ep("f8mWMqLO88A", "Pok\u00e9mon - Sparks Fly for Magnemite"),
+        new Ep("mRR7mbV0u4U", "Pok\u00e9mon - Dig Those Diglett!"),
+        new Ep("XpwNBGB6Fuo", "Pok\u00e9mon - The Ninja Pok\u00e9-Showdown"),
+        new Ep("RYdXQlBjjPI", "Pok\u00e9mon - The Flame Pok\u00e9mon-athon!"),
+        new Ep("1PfJMmwI6b4", "Pok\u00e9mon - The Kangaskhan Kid"),
+        new Ep("DhRYzCfjysY", "Pok\u00e9mon - The Bridge Bike Gang"),
+        new Ep("dHuwaW3Vlh4", "Pok\u00e9mon - Ditto\u2019s Mysterious Mansion"),
+        new Ep("lSZ172BJoaE", "Pok\u00e9mon - Pikachu\u2019s Goodbye"),
+        new Ep("xTmgJ8-HCtI", "Pok\u00e9mon - The Battling Eevee Brothers"),
+        new Ep("tuTr_cRGKds", "Pok\u00e9mon - Wake Up Snorlax!"),
+        new Ep("XXuhIoEBB_M", "Pok\u00e9mon - Showdown at Dark City"),
+        new Ep("pBXQbh0mtCE", "Pok\u00e9mon - The March of the Exeggutor Squad"),
+        new Ep("J2MF6t_N8vo", "Pok\u00e9mon - The Problem with Paras"),
+        new Ep("Ss13Pnq6XII", "Pok\u00e9mon - The Song of Jigglypuff"),
+        new Ep("pCCsYuiAIQ8", "Pok\u00e9mon - Attack of the Prehistoric Pok\u00e9mon"),
+        new Ep("XTaSlC_OmV4", "Pok\u00e9mon - A Chansey Operation"),
+        new Ep("LzSRkzuKJM8", "Pok\u00e9mon - Holy Matrimony!"),
+        new Ep("wKU_vLdoSwQ", "Pok\u00e9mon - So Near Yet So Farfetch\u2019d"),
+        new Ep("okJhrQSg7uU", "Pok\u00e9mon - Who Gets to Keep Togepi?"),
+        new Ep("SpYyPHhvCFQ", "Pok\u00e9mon - Bulbasaur\u2019s Mysterious Garden"),
+        new Ep("Fv3cmSw9-L4", "Pok\u00e9mon - The Case of the K-9 Caper"),
+        new Ep("6ipxURw5U9w", "Pok\u00e9mon Paparazzi"),
+    };
+    public static final Ep[] EP_POKEMON_S2 = {
+        new Ep("yGvr0TXXPVU", "Pok\u00e9mon - Princess vs. Princess"),
+        new Ep("WmhHwNb2wio", "Pok\u00e9mon - The Purr-fect Hero"),
+        new Ep("p2sUUsylt3M", "Pok\u00e9mon - Riddle Me This"),
+        new Ep("fokk0u5Yr5Y", "Pok\u00e9mon - Volcanic Panic"),
+        new Ep("mDGVc3Sc_H4", "Pok\u00e9mon - Beach Blank-out Blastoise"),
+        new Ep("G7EBiaDe_K0", "Pok\u00e9mon - The Misty Mermaid"),
+        new Ep("5jtFBj6nLw4", "Pok\u00e9mon - Clefairy Tales"),
+        new Ep("VQFtkKgOVGk", "Pok\u00e9mon - The Battle of the Badge"),
+        new Ep("KH92hzvhv2g", "Pok\u00e9mon - It\u2019s Mr. Mime Time"),
+        new Ep("8Gr8rpuXE0Y", "Pok\u00e9mon - Snow Way Out!"),
+        new Ep("SaMuL0NZhCU", "Pok\u00e9mon - Showdown at the Po-k\u00e9 Corral"),
+        new Ep("d7Cg2uxArRk", "Pok\u00e9mon - The Evolution Solution"),
+        new Ep("be4-hKKU9gQ", "Pok\u00e9mon - The Pi-Kahuna"),
+        new Ep("PsrT-DG4M4w", "Pok\u00e9mon - Make Room for Gloom!"),
+        new Ep("5aM-1cKb6ek", "Pok\u00e9mon - Lights, Camera, Quack-tion!"),
+        new Ep("IcbL2_S2I1w", "Pok\u00e9mon - Go West Young Meowth"),
+        new Ep("zJIPee30NE4", "Pok\u00e9mon - To Master the Onixpected"),
+        new Ep("L7jmc-Nlf_g", "Pok\u00e9mon - The Ancient Puzzle of Pok\u00e9mopolis"),
+        new Ep("WorXd6hl-Tk", "Pok\u00e9mon - Bad to the Bone"),
+        new Ep("r457Fc-bnAc", "Pok\u00e9mon - All Fired Up!"),
+        new Ep("ROUh6KKz9XA", "Pok\u00e9mon - Round One\u2014Begin!"),
+        new Ep("mFp1nN5RSPE", "Pok\u00e9mon - Fire and Ice"),
+        new Ep("To4-wg_FIWE", "Pok\u00e9mon - The Fourth Round Rumble"),
+        new Ep("x3Lo2lSdfq8", "Pok\u00e9mon - A Friend in Deed"),
+        new Ep("aW85odlbP8w", "Pok\u00e9mon - Friend and Foe Alike"),
+        new Ep("XwqbK7rylF8", "Pok\u00e9mon - Friends to the End"),
+        new Ep("cMP8xw5nNFQ", "Pok\u00e9mon - Pallet Party Panic"),
+        new Ep("XgqTy11IcGY", "Pok\u00e9mon - A Scare in the Air"),
+        new Ep("t4kyX_eaZt8", "Pok\u00e9ball Peril"),
+        new Ep("_cy6tWoHHVA", "Pok\u00e9mon - The Lost Lapras"),
+        new Ep("jYwfTAljvis", "Pok\u00e9mon - Fit to Be Tide"),
+        new Ep("ZxrAqlIq0Lk", "Pok\u00e9mon - Pikachu Re-Volts"),
+        new Ep("qdju1COuRvQ", "Pok\u00e9mon - The Crystal Onix"),
+        new Ep("uKo5RXqOQwI", "Pok\u00e9mon - In the Pink"),
+        new Ep("30ZUfh6DRG0", "Pok\u00e9mon - Shell Shock!"),
+        new Ep("gzQ9-U8C-5U", "Pok\u00e9mon - Bye, Bye Psyduck"),
+        new Ep("LP_9xMRbmMA", "Pok\u00e9mon - The Joy of Pok\u00e9mon"),
+        new Ep("9RSOiS0QrS8", "Pok\u00e9mon - Navel Maneuvers"),
+        new Ep("A4pBehExNAM", "Pok\u00e9mon - Snack Attack"),
+        new Ep("Lr5Y5LSedaQ", "Pok\u00e9mon - A Shipful of Shivers"),
+    };
     public static final String[][] SEASONS_CHOUFLI = {
         {"2005", "Season 1 - 2005"}, {"2006", "Season 2 - 2006"},
         {"2007", "Season 3 - 2007"}, {"2008", "Season 4 - 2008"},
@@ -209,8 +304,17 @@ public class Series {
     public static final String[][] SEASONS_KHOTTAB = {
         {"S1", "Season 1 - 1996"}, {"S2", "Season 2 - 1997"},
     };
+
+    // v4.39: Pokemon -- official Pokemon TV channel, Arabic audio track
+    // on every episode (multi-audio; the client picks the ar track).
+    // S1 Indigo League 50 eps, S2 Orange Islands 40 eps.
+    public static final String[][] SEASONS_POKEMON = {
+        {"S1", "Season 1 - Indigo League"},
+        {"S2", "Season 2 - Orange Islands"},
+    };
     public static String[][] seasonsFor(String series) {
         if ("khottab".equals(series)) return SEASONS_KHOTTAB;
+        if ("pokemon".equals(series)) return SEASONS_POKEMON;
         return SEASONS_CHOUFLI;
     }
 
@@ -218,6 +322,11 @@ public class Series {
         if ("khottab".equals(series)) {
             if ("S1".equals(season)) return EP_KHOTTAB_S1;
             if ("S2".equals(season)) return EP_KHOTTAB_S2;
+            return new Ep[0];
+        }
+        if ("pokemon".equals(series)) {
+            if ("S1".equals(season)) return EP_POKEMON_S1;
+            if ("S2".equals(season)) return EP_POKEMON_S2;
             return new Ep[0];
         }
         if ("2005".equals(season)) return EP_2005;

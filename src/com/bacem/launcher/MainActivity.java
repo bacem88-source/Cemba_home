@@ -195,6 +195,11 @@ public class MainActivity extends Activity {
         if ("mosquesunset".equals(t)) return "bg_mosque_sunset";
         if ("mosqueblue".equals(t)) return "bg_mosque_blue";
         if ("mosquedesert".equals(t)) return "bg_mosque_desert";
+        // v4.39: cartoon themes -- one hero picture each, like team themes.
+        if ("pokemon".equals(t)) return "bg_pokemon_hero";
+        if ("conan".equals(t)) return "bg_conan_hero";
+        if ("spongebob".equals(t)) return "bg_spongebob_hero";
+        if ("pawpatrol".equals(t)) return "bg_pawpatrol_hero";
         return null;
     }
 
@@ -1420,6 +1425,8 @@ public class MainActivity extends Activity {
         {"Eid al-Adha", "eidadha"}, {"Islamic New Year", "hijri"}, {"Ashura", "ashura"},
         {"Hajj", "hajj"}, {"New Year", "newyear"},
         {"Kids", "kids"},
+        {"Pok\u00e9mon", "pokemon"}, {"Detective Conan", "conan"},
+        {"SpongeBob", "spongebob"}, {"PAW Patrol", "pawpatrol"},
         {"Gold", "gold"}, {"Classic", "classic"}, {"Ocean", "ocean"}, {"Midnight", "midnight"},
         {"Crimson", "crimson"}, {"Emerald", "emerald"}, {"Sunset", "sunset"}, {"Violet", "violet"},
         {"Sport", "sport"}, {"Forest", "forest"}, {"Royal", "royal"}, {"Coral", "coral"},
@@ -5480,13 +5487,16 @@ public class MainActivity extends Activity {
         kidsRow.addView(staticCard("Learn & Play", "Letters, numbers, colours", "LEARN", 0xFF2E7D32, R.drawable.tile_kids, new Runnable() {
             @Override public void run() { openCobaltSearch("learning videos for kids"); }}));
         // v4.35: Conan + Pokemon search shortcuts in the Kids watching
-        // tab (his ask). Both open a Cobalt search for the Arabic-dubbed
+        // tab (his ask). Both open a search for the Arabic-dubbed
         // episodes; he will see later how to improve them (e.g. direct
-        // channel links).
+        // channel links). v4.39 (his summary 2026-11-17): Family profile
+        // keeps Cobalt as is; Kids profile opens the normal YouTube app
+        // (openKidsSearch) -- the YouTube app there is signed into
+        // Jannah's Kids profile.
         kidsRow.addView(staticCard("Conan", "Detective Conan in Arabic", "CONAN", 0xFFD32F2F, R.drawable.tile_kids, new Runnable() {
-            @Override public void run() { openCobaltSearch("\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 \u0645\u062f\u0628\u0644\u062c"); }}));
+            @Override public void run() { openKidsSearch("\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 \u0645\u062f\u0628\u0644\u062c"); }}));
         kidsRow.addView(staticCard("Pokemon", "Pokemon in Arabic", "POKEMON", 0xFFF9A825, R.drawable.tile_kids, new Runnable() {
-            @Override public void run() { openCobaltSearch("\u0628\u0648\u0643\u064a\u0645\u0648\u0646 \u0645\u062f\u0628\u0644\u062c"); }}));
+            @Override public void run() { openKidsSearch("\u0628\u0648\u0643\u064a\u0645\u0648\u0646 \u0645\u062f\u0628\u0644\u062c"); }}));
     }
 
     // Adds song picks to the Music row (deduped through musicSeen); if the row would
@@ -5644,6 +5654,41 @@ public class MainActivity extends Activity {
     void openCobaltSearch(String query) {
         openCobaltUrl(ytSearch(query));
     }
+
+    // v4.39: open a YouTube search in the official YouTube app, not
+    // Cobalt. Used by the Kids Conan/Pokemon cards when the profile is
+    // Kids: in Kids mode the Bridge is off and the YouTube app is signed
+    // into Jannah's Kids profile, so the search opens in normal YouTube
+    // there. Tries the YouTube TV app first (Xiaomi), then the phone
+    // YouTube app (N5 Max), then a plain intent as a fallback.
+    void openYouTubeSearch(String query) {
+        try {
+            String url = "https://www.youtube.com/results?search_query=" + java.net.URLEncoder.encode(query, "UTF-8");
+            String[] pkgs = { "com.google.android.youtube.tv", "com.google.android.youtube" };
+            for (String pk : pkgs) {
+                try {
+                    Intent i = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url));
+                    i.setPackage(pk);
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(i);
+                    return;
+                } catch (Exception e) { /* try next */ }
+            }
+            Intent i = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(i);
+        } catch (Exception e) {
+            toast("YouTube is not installed on this box");
+        }
+    }
+
+    // v4.39: Kids-aware search -- normal YouTube app in Kids mode,
+    // Cobalt in Family mode (kept as is there).
+    void openKidsSearch(String query) {
+        if (kidsMode()) openYouTubeSearch(query);
+        else openCobaltSearch(query);
+    }
+
 
     // v4.13: bring Cobalt to front WITHOUT a URL, so a video left playing
     // resumes where it was instead of restarting. When Cobalt is already

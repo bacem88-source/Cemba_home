@@ -696,6 +696,11 @@ public class Logic {
         if ("hajj".equals(key)) return 0xFF6D4C41;
         if ("newyear".equals(key)) return 0xFF00ACC1;
         if ("kids".equals(key)) return 0xFFEC407A;
+        // v4.39: cartoon themes.
+        if ("pokemon".equals(key)) return 0xFFF9A825;
+        if ("conan".equals(key)) return 0xFFD32F2F;
+        if ("spongebob".equals(key)) return 0xFFFFEB3B;
+        if ("pawpatrol".equals(key)) return 0xFF1E88E5;
         return 0;
     }
 

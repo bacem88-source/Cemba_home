@@ -147,6 +147,58 @@ public class LiveTvActivity extends Activity {
         new Ch("Movies Thriller", "Thriller movies - free", "https://shd-amg-fast.edgenextcdn.net/tx012/playlist.m3u8", 0xFF37474F, 0, "MT", 1),
         new Ch("MBC Bollywood", "Bollywood movies - free", "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-bollywood/546eb40d7dcf9a209255dd2496903764/index.m3u8", 0xFF8E24AA, 0, "MB", 1),
     };
+    // v4.39: Cartoon Movies -- Conan long movies (his ask, a section like
+    // Series). Full-length movies on YouTube, kind 0 = opens in Cobalt.
+    // All 8 verified public (oEmbed 200) on 2026-11-17. These are fan
+    // uploads, not an official channel -- they can disappear; the list
+    // lives in ~/workspace/kids-series/conan_movies.txt so a dead one
+    // can be swapped. The Spacetoon Go "Conan movies" playlist is
+    // trailers/clips only, not full movies.
+    static final Ch[] CARTOON_MOVIES = {
+        new Ch("Conan - Lupin III", "Movie - dubbed - 108 min", "https://www.youtube.com/watch?v=7zjQ4kvHUKM", 0xFF7B1FA2, 0, "C1", 0),
+        new Ch("Conan - Crimson Letters", "Movie - dubbed - 103 min", "https://www.youtube.com/watch?v=usjYEQNFqe8", 0xFF7B1FA2, 0, "C2", 0),
+        new Ch("Conan - Sunflowers of Inferno", "Movie - dubbed - 108 min", "https://www.youtube.com/watch?v=G-9q0Do5xCE", 0xFF7B1FA2, 0, "C3", 0),
+        new Ch("Conan - Scarlet Bullet", "Movie - dubbed - 88 min", "https://www.youtube.com/watch?v=8r2zWROiErg", 0xFF7B1FA2, 0, "C4", 0),
+        new Ch("Conan - Crimson Letter", "Movie - dubbed - 103 min", "https://www.youtube.com/watch?v=jCruxS_PJGw", 0xFF7B1FA2, 0, "C5", 0),
+        new Ch("Conan 25 - Halloween Bride", "Movie 25 - subtitled - 95 min", "https://www.youtube.com/watch?v=0K-rzDhqIMo", 0xFF7B1FA2, 0, "C6", 0),
+        new Ch("Conan - Full Movie HD", "Movie - subtitled - 84 min", "https://www.youtube.com/watch?v=Jzc3f2LhKSQ", 0xFF7B1FA2, 0, "C7", 0),
+        new Ch("Conan - Best 3 Movies", "Movies 6, 5, 26 - 86 min", "https://www.youtube.com/watch?v=uF5O6ZBYsIY", 0xFF7B1FA2, 0, "C8", 0),
+    };
+    // v4.39: Kids Live -- free kids live channels for the Kids profile
+    // Live TV tab (his ask: Live TV in Kids is only kids channels --
+    // learning, fun, etc.). All 25 verified live 2026-11-17 (HTTP 200 +
+    // #EXTM3U + a real .ts segment). The 5 marked "restream" are bare-IP
+    // third-party restreams -- they work now but are the least stable.
+    // Majid Kids, Baraem, Jeem, Karameesh, Toyor Al Janah have NO free
+    // HLS (satellite + YouTube/app only). Pluto kids channels cannot play
+    // in our HLS player (their links are too long, HTTP 414).
+    static final Ch[] KIDS_LIVE = {
+        new Ch("Spacetoon Arabic", "Kids - Arabic - Spacetoon", "https://live-uae-next.spacetoongo.com/ST_MENA_NEXT/hls/r9p2hjipmw2kl.m3u8", 0xFF1565C0, 0, "SP", 1),
+        new Ch("MBC 3 USA", "Kids - Arabic - MBC 3", "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-3-usa/5d58265a862a476dc7f97694addb5ded/index.m3u8", 0xFF00695C, 0, "M3", 1),
+        new Ch("Amou Yazid TV", "Kids - Arabic - Algeria", "http://mkstream.servehttp.com:1940/AmouYazid/ay1/playlist.m3u8", 0xFF6A1B9A, 0, "AY", 1),
+        new Ch("Atfal & Mawaheb TV", "Kids - Arabic - Saudi", "https://5aafcc5de91f1.streamlock.net/atfal1.com/atfal2/playlist.m3u8", 0xFFAD1457, 0, "AM", 1),
+        new Ch("BabyFirst", "Preschool - Arabic/English", "https://cdn.fast.jwp.services/v1/channel/1_jB6940Ei_TvhvIHDL/manifest.m3u8", 0xFFEF6C00, 0, "BF", 1),
+        new Ch("Sat 7 Kids", "Kids - Arabic", "https://svs.itworkscdn.net/sat7kidslive/sat7kids.smil/playlist_dvr.m3u8", 0xFF37474F, 0, "S7", 1),
+        new Ch("Koogi TV", "Kids - Arabic", "https://5d658d7e9f562.streamlock.net/koogi.tv/koogi.smil/playlist.m3u8", 0xFF2E7D32, 0, "KO", 1),
+        new Ch("Taha TV", "Kids - Arabic - Islamic", "https://stream.starmenajo.com/hls/app/live/ts:fhd.m3u8", 0xFF00897B, 0, "TA", 1),
+        new Ch("Cartoon Network Arabic", "Kids - Arabic - restream", "http://149.100.11.252:8000/play/a056/index.m3u8", 0xFFC62828, 0, "CN", 1),
+        new Ch("Nickelodeon Arabia", "Kids - Arabic - restream", "http://85.237.89.159:3342/ar-s/Nickelodeon/index.m3u8", 0xFFEF6C00, 0, "NK", 1),
+        new Ch("PBS Kids", "Kids - English - PBS", "https://livestream.pbskids.org/out/v1/14507d931bbe48a69287e4850e53443c/est.m3u8", 0xFF1565C0, 0, "PK", 1),
+        new Ch("Baby Shark TV", "Kids - English - Baby Shark", "https://newidco-babysharktv-1-us.roku.wurl.tv/playlist.m3u8", 0xFF00838F, 0, "BS", 1),
+        new Ch("HappyKids", "Kids - English - movies/shows", "https://dil9xdvretp0f.cloudfront.net/index.m3u8", 0xFF6A1B9A, 0, "HK", 1),
+        new Ch("Kartoon Channel", "Kids - English - cartoons", "https://lightning-fnf-samsungaus.amagi.tv/playlist.m3u8", 0xFFAD1457, 0, "KC", 1),
+        new Ch("Moonbug Kids", "Kids - English - Cocomelon/Blippi", "https://moonbug-rokuus.amagi.tv/playlist.m3u8", 0xFF2E7D32, 0, "MB", 1),
+        new Ch("ducktv HD", "Preschool - English", "https://dash3.antik.sk/live/duck_tv/index.m3u8", 0xFFEF6C00, 0, "DK", 1),
+        new Ch("Boomerang US", "Kids - English - restream", "http://23.237.104.106:8080/USA_BOOMERANG/index.m3u8", 0xFF37474F, 0, "BU", 1),
+        new Ch("France 4", "Kids - French - Okoo", "https://r.eu.cdn-redge.media/livehls/oeu/mt/live/france_4/live.livx/playlist.m3u8", 0xFF1565C0, 0, "F4", 1),
+        new Ch("Nickelodeon France", "Kids - French - Nick", "https://r.eu.cdn-redge.media/livehls/oeu/mt/live/nickelodeon/live.livx/playlist.m3u8", 0xFFEF6C00, 0, "NF", 1),
+        new Ch("Nickelodeon Junior FR", "Preschool - French - Nick Jr", "https://r.eu.cdn-redge.media/livehls/oeu/mt/live/nickelodeon_junior/live.livx/playlist.m3u8", 0xFF6A1B9A, 0, "NJ", 1),
+        new Ch("Nicktoons France", "Kids - French - Toons", "https://r.eu.cdn-redge.media/livehls/oeu/mt/live/nicktoons/live.livx/playlist.m3u8", 0xFF00897B, 0, "NT", 1),
+        new Ch("Mr Bean Animated FR", "Kids - French - Mr Bean", "https://amg00627-amg00627c31-rakuten-fr-3991.playouts.now.amagi.tv/playlist/amg00627-banijayfast-mrbeanfrcc-rakutenfr/playlist.m3u8", 0xFF37474F, 0, "MR", 1),
+        new Ch("JapanimTV", "Kids - French - Anime", "https://foxkidstv.be:3369/stream/play.m3u8", 0xFFAD1457, 0, "JA", 1),
+        new Ch("Gulli", "Kids - French - restream", "http://99.27.51.147:8080/Gulli/index.m3u8", 0xFFC62828, 0, "GU", 1),
+        new Ch("Boomerang France HD", "Kids - French - restream", "http://41.205.93.154/BOOMERANG/index.m3u8", 0xFF2E7D32, 0, "BF", 1),
+    };
     // v4.35: series on YouTube (VOD playlists, kind 0 = opens in Cobalt).
     // Choufli Hal: Tunisian sitcom, 6 seasons / 135 episodes, 2005-2009.
     // Season by season (his ask), using the season playlists the
@@ -158,6 +210,9 @@ public class LiveTvActivity extends Activity {
     static final Ch[] SERIES = {
         new Ch("Choufli Hal", "Tunisian sitcom - 5 seasons, 2005-2009", "https://www.youtube.com/playlist?list=PLtKHe7Z2QnnH8hjtv4Ehv4x00ZDIhifUr", 0xFFC62828, 0, "CH", 5, null, "choufli"),
         new Ch("El Khottab Al Bab", "Tunisian sitcom - 2 seasons, 1996-1997", "https://www.youtube.com/playlist?list=PLS4sEUpuUmKiTVRfH9eqGGBhiKCwJEOhu", 0xFF00695C, 0, "KB", 5, null, "khottab"),
+        // v4.39: Pokemon -- official Pokemon TV channel, S1 Indigo League
+        // (50 eps) + S2 Orange Islands (40 eps), Arabic audio track.
+        new Ch("Pokemon", "Kids series - 2 seasons, 90 episodes, Arabic audio", "https://www.youtube.com/playlist?list=PLRcHmntfmJ8CnSmj4C284-a1euH518aQa", 0xFFF9A825, 0, "PK", 5, null, "pokemon"),
         // v4.37: free series channels (verified live 2026-11-17) -- live
         // series TV, alongside the season episode lists above.
         new Ch("Bab Al Hara", "Series - Arabic - free", "https://shd-amg-fast.edgenextcdn.net/tx010/playlist.m3u8", 0xFF5D4037, 0, "BH", 1),
@@ -165,7 +220,17 @@ public class LiveTvActivity extends Activity {
         new Ch("MBC Drama USA", "Series - Arabic - free", "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-drama-usa/ea2f5db904aff224b7066e59c7f585a2/index.m3u8", 0xFFAD1457, 0, "MD", 1),
         new Ch("MBC Masr Drama", "Series - Egypt - free", "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-masr-drama/567b703c19ede6598222de81b0e4508b/index.m3u8", 0xFF00897B, 0, "ME", 1),
     };
-    static final String[] CATS = { "All channels", "Tunisia", "News \u2014 free", "Arabic", "Sport", "YouTube live", "World", "Series", "Documentary", "Movies" };
+    static final String[] CATS = { "All channels", "Tunisia", "News \u2014 free", "Arabic", "Sport", "YouTube live", "World", "Series", "Documentary", "Movies", "Cartoon Movies", "Kids" };
+    // v4.39: index of the Kids category in CATS. In Kids mode the guide
+    // shows only this category (see kidsMode + buildCats).
+    static final int KIDS_CAT = 11;
+
+    // v4.39: true when Cemba Home is in the Kids profile. The Live TV
+    // guide is kids-only then -- only the Kids category is shown and
+    // the sidebar cannot leave it.
+    boolean kidsMode() {
+        return getSharedPreferences("ui", MODE_PRIVATE).getBoolean("kids_mode", false);
+    }
     static final int GRID_COLS = 4;
 
     LinearLayout catCol, gridCol;
@@ -300,6 +365,8 @@ public class LiveTvActivity extends Activity {
         setContentView(root);
         int startCat = getIntent().getIntExtra("cat", 0);
         if (startCat >= 0 && startCat < CATS.length) cat = startCat;
+        // v4.39: Kids mode opens straight on the Kids category.
+        if (kidsMode()) cat = KIDS_CAT;
         buildCats();
         buildChannels();
         refresh();
@@ -313,7 +380,10 @@ public class LiveTvActivity extends Activity {
         // v3.70: even smaller, like Morph -- text 20 -> 18sp, padding
         // 8 -> 6dp, margin 6 -> 4dp.
         catCol.removeAllViews();
+        // v4.39: Kids mode shows only the Kids category in the sidebar;
+        // the other catViews stay null and refresh() skips them.
         for (int i = 0; i < CATS.length; i++) {
+            if (kidsMode() && i != KIDS_CAT) { catViews[i] = null; continue; }
             TextView t = new TextView(this);
             t.setText(CATS[i]);
             t.setTextSize(18);
@@ -330,7 +400,7 @@ public class LiveTvActivity extends Activity {
     void buildChannels() {
         shown.clear();
         if (cat == 0) {
-            addAll(YT); addAll(FREE); addAll(AR_NEWS); addAll(AR_GEN); addAll(SPORT); addAll(WORLD); addAll(SERIES); addAll(DOC); addAll(MOVIES);
+            addAll(YT); addAll(FREE); addAll(AR_NEWS); addAll(AR_GEN); addAll(SPORT); addAll(WORLD); addAll(SERIES); addAll(DOC); addAll(MOVIES); addAll(CARTOON_MOVIES);
             if (iptvConfiguredHere()) {
                 if (iptv.isEmpty()) {
                     shown.add(new Ch(iptvLoading ? "Loading provider channels..." : "No provider channels found", iptvLoading ? "Please wait" : "Test the connection in Settings > My IPTV", null, 0xFF3A4152, 0, "?", 3));
@@ -346,7 +416,9 @@ public class LiveTvActivity extends Activity {
         else if (cat == 6) { addAll(WORLD); }
         else if (cat == 7) { addAll(SERIES); }
         else if (cat == 8) { addAll(DOC); }
-        else { addAll(MOVIES); }
+        else if (cat == 9) { addAll(MOVIES); }
+        else if (cat == 10) { addAll(CARTOON_MOVIES); }
+        else { addAll(KIDS_LIVE); }
         // v3.69: search filter -- when a query is set, keep only channels
         // whose name contains it (case-insensitive), across the category.
         if (searchQuery != null && searchQuery.length() > 0) {
@@ -428,6 +500,7 @@ public class LiveTvActivity extends Activity {
     void refresh() {
         for (int i = 0; i < CATS.length; i++) {
             TextView t = catViews[i];
+            if (t == null) continue;
             GradientDrawable g = rounded(Color.TRANSPARENT, 12);
             if (i == cat) {
                 g.setColor(col == 0 ? 0xFFFFD200 : Color.rgb(58, 68, 120));
@@ -512,12 +585,12 @@ public class LiveTvActivity extends Activity {
             return true;
         }
         if (code == KeyEvent.KEYCODE_DPAD_UP) {
-            if (col == 0) { cat = (cat + CATS.length - 1) % CATS.length; chSel = 0; buildChannels(); }
+            if (col == 0) { if (kidsMode()) { refresh(); return true; } cat = (cat + CATS.length - 1) % CATS.length; chSel = 0; buildChannels(); }
             else if (chSel >= GRID_COLS) chSel -= GRID_COLS;
             refresh(); return true;
         }
         if (code == KeyEvent.KEYCODE_DPAD_DOWN) {
-            if (col == 0) { cat = (cat + 1) % CATS.length; chSel = 0; buildChannels(); }
+            if (col == 0) { if (kidsMode()) { refresh(); return true; } cat = (cat + 1) % CATS.length; chSel = 0; buildChannels(); }
             else if (chSel + GRID_COLS < shown.size()) chSel += GRID_COLS;
             refresh(); return true;
         }
