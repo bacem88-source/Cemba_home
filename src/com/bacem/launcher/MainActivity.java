@@ -3258,7 +3258,48 @@ public class MainActivity extends Activity {
     }
 
     // v3.52: the Apps tab -- every app as a row, Play Store first.
-    void openAppsPanel() { showPanel(appsPanel); fillAppsPanel(); }
+    void openAppsPanel() {
+        showPanel(appsPanel); fillAppsPanel();
+        // v4.34: the panel itself takes focus when the tab opens
+        // (showPanel requests focus on it), so the FIRST Down press
+        // lands on the panel, not on a circle -- and the panel has no
+        // grid key handler, so Android's default search jumps straight
+        // to the last app. Catch Down on the panel and send it to the
+        // first app instead; Up on the panel stays put.
+        appsPanel.setOnKeyListener(new View.OnKeyListener() {
+            @Override public boolean onKey(View v, int keyCode, KeyEvent e) {
+                if (e.getAction() != KeyEvent.ACTION_DOWN) return false;
+                if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                    View first = firstCircleIn(appsPanel);
+                    if (first != null) { first.requestFocus(); return true; }
+                    return true;
+                }
+                if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return true;
+                return false;
+            }
+        });
+    }
+
+    // v4.34: first app circle in a panel grid (child 0 is the title).
+    View firstCircleIn(View panel) {
+        try {
+            android.view.ViewGroup pg = (android.view.ViewGroup) panel;
+            for (int r = 1; r < pg.getChildCount(); r++) {
+                View rr = pg.getChildAt(r);
+                if (!(rr instanceof LinearLayout)) continue;
+                LinearLayout rl = (LinearLayout) rr;
+                if (rl.getChildCount() > 0) {
+                    View cc = rl.getChildAt(0);
+                    if (cc instanceof LinearLayout) {
+                        LinearLayout cl = (LinearLayout) cc;
+                        if (cl.getChildCount() > 0 && cl.getChildAt(0) instanceof FrameLayout)
+                            return cl.getChildAt(0);
+                    }
+                }
+            }
+        } catch (Exception e) {}
+        return null;
+    }
     void fillAppsPanel() {
         while (appsPanel.getChildCount() > 1) appsPanel.removeViewAt(1);
         // v4.16: reuse the list loadApps already queried on a background
