@@ -999,6 +999,15 @@ public class MainActivity extends Activity {
     }
 
     void checkForUpdates(final boolean manual) {
+        // v4.36: the first tap used to do nothing at all -- no dialog, no
+        // toast. Two causes: (1) GitHub's raw CDN can serve a stale
+        // version.json, so the check silently concluded "up to date";
+        // (2) nothing told him the tap had registered while the fetch
+        // was still running. Fix: show "Checking..." at once on a manual
+        // check, and add a cache-buster (?t=now) so the fetch is always
+        // fresh instead of a cached copy.
+        if (manual) toast("Checking for updates...");
+        final String freshUrl = UPDATE_URL + "?t=" + System.currentTimeMillis();
         new Thread(new Runnable() {
             @Override public void run() {
                 String err = null;
@@ -1007,7 +1016,7 @@ public class MainActivity extends Activity {
                 String apkUrl = "";
                 String notes = "";
                 try {
-                    java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(UPDATE_URL).openConnection();
+                    java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(freshUrl).openConnection();
                     c.setConnectTimeout(10000);
                     c.setReadTimeout(15000);
                     c.setRequestMethod("GET");

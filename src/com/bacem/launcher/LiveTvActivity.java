@@ -29,6 +29,7 @@ import java.util.ArrayList;
 public class LiveTvActivity extends Activity {
     // kind 0 = YouTube, opens in Cobalt; kind 1 = free HLS, plays in
     // PlayerActivity; kind 2 = provider HLS; kind 3 = provider hint row.
+    // kind 4 = series season, opens the Cemba episode list (v4.36).
     // ua = optional User-Agent override for the player (L'Equipe needs a
     // desktop Chrome UA); null means the default.
     static class Ch {
@@ -127,11 +128,11 @@ public class LiveTvActivity extends Activity {
     // Choufli Hal channel itself links to. Watania Replay also has one
     // official playlist for the whole sitcom, but he wants it by season.
     static final Ch[] SERIES = {
-        new Ch("Choufli Hal 2005", "Season 1 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q8dUWcl-f1M5kf_KhwQAhNY", 0xFFC62828, 0, "05", 0),
-        new Ch("Choufli Hal 2006", "Season 2 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q_2aTOKeMhkDhfR-il5S8Cn", 0xFFC62828, 0, "06", 0),
-        new Ch("Choufli Hal 2007", "Season 3 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q8RgjOKZB9t1KJHmRDio6u3", 0xFFC62828, 0, "07", 0),
-        new Ch("Choufli Hal 2008", "Season 4 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q_n8dmyc_2QOwiP5sN2ax6D", 0xFFC62828, 0, "08", 0),
-        new Ch("Choufli Hal 2009", "Season 5 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q-fUq2C2-_82RcQ1-I9UPd7", 0xFFC62828, 0, "09", 0),
+        new Ch("Choufli Hal 2005", "Season 1 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q8dUWcl-f1M5kf_KhwQAhNY", 0xFFC62828, 0, "05", 4),
+        new Ch("Choufli Hal 2006", "Season 2 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q_2aTOKeMhkDhfR-il5S8Cn", 0xFFC62828, 0, "06", 4),
+        new Ch("Choufli Hal 2007", "Season 3 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q8RgjOKZB9t1KJHmRDio6u3", 0xFFC62828, 0, "07", 4),
+        new Ch("Choufli Hal 2008", "Season 4 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q_n8dmyc_2QOwiP5sN2ax6D", 0xFFC62828, 0, "08", 4),
+        new Ch("Choufli Hal 2009", "Season 5 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q-fUq2C2-_82RcQ1-I9UPd7", 0xFFC62828, 0, "09", 4),
     };
     static final String[] CATS = { "All channels", "Tunisia", "News \u2014 free", "Arabic", "Sport", "YouTube live", "World", "Series" };
     static final int GRID_COLS = 4;
@@ -590,7 +591,15 @@ public class LiveTvActivity extends Activity {
         if (shown.isEmpty()) return;
         Ch c = shown.get(chSel);
         if (c.kind == 3) { Toast.makeText(this, "Add your provider in Settings > My IPTV", Toast.LENGTH_SHORT).show(); return; }
-        if (c.kind == 0) {
+        if (c.kind == 4) {
+            // v4.36: a series season opens the Cemba episode list; the
+            // season year is the last 4 chars of the card name.
+            String season = c.name.length() >= 4 ? c.name.substring(c.name.length() - 4) : "";
+            Intent i = new Intent(this, EpisodeListActivity.class);
+            i.putExtra("season", season);
+            i.putExtra("title", c.name);
+            startActivity(i);
+        } else if (c.kind == 0) {
             if (!tryCobalt(c.url)) Toast.makeText(this, "TizenTube Cobalt not installed", Toast.LENGTH_SHORT).show();
         } else {
             Intent i = new Intent(this, PlayerActivity.class);
