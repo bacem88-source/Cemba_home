@@ -5840,6 +5840,42 @@ public class MainActivity extends Activity {
     static final int[] CIRCLE_COLORS = { 0xFF37474F, 0xFF4A6572, 0xFF5D4037, 0xFF455A64,
         0xFF6A4C93, 0xFF00695C, 0xFF283593, 0xFF795548 };
 
+    // v4.33: flat index of a circle inside the Apps-panel grid, and the
+    // circle +/-step positions away (step 7 = one row). Returns null when
+    // the step lands outside the grid (first/last row) -- the caller then
+    // stays put instead of letting the focus search jump to the end.
+    View gridNeighbour(View circle, int step) {
+        try {
+            View cell = (View) circle.getParent();
+            View row = (View) cell.getParent();
+            android.view.ViewGroup panel = (android.view.ViewGroup) row.getParent();
+            // Collect the circles in panel order (skip child 0 = title).
+            java.util.List<View> circles = new java.util.ArrayList<View>();
+            for (int r = 1; r < panel.getChildCount(); r++) {
+                View rr = panel.getChildAt(r);
+                if (!(rr instanceof LinearLayout)) continue;
+                LinearLayout rl = (LinearLayout) rr;
+                for (int c = 0; c < rl.getChildCount(); c++) {
+                    View cc = rl.getChildAt(c);
+                    if (!(cc instanceof LinearLayout)) continue;
+                    LinearLayout cl = (LinearLayout) cc;
+                    if (cl.getChildCount() > 0 && cl.getChildAt(0) instanceof FrameLayout)
+                        circles.add(cl.getChildAt(0));
+                }
+            }
+            int idx = circles.indexOf(circle);
+            if (idx < 0) return null;
+            int target = idx + step;
+            if (target < 0) return null;
+            if (target >= circles.size()) {
+                // Down past the last row: land on the last app, not past it.
+                if (step > 0 && idx < circles.size() - 1) return circles.get(circles.size() - 1);
+                return null;
+            }
+            return circles.get(target);
+        } catch (Exception e) { return null; }
+    }
+
     View appCircle(final AppItem ai) { return appCircle(ai, true); }
     // The grid in the Apps tab reuses the same cell but without the long-press
     // Move (Move only works on the home row -- it reorders appsRow).
@@ -5880,6 +5916,22 @@ public class MainActivity extends Activity {
         // into the background. The background stays his photos, always.
         circle.setContentDescription(ai.label);
         focusableOval(circle);
+        // v4.33: Apps-tab grid navigation. The panel is a grid (7 per row)
+        // inside a ScrollView, and Android's default focus search jumps
+        // DOWN straight to the last app instead of the row below. So in
+        // the Apps panel (movable=false) DOWN/UP move exactly one row
+        // (+/-7) and stay put at the first/last row. The home row
+        // (movable=true) is a single horizontal row, so it keeps the
+        // default behaviour (DOWN leaves the row for the section below).
+        if (!movable) circle.setOnKeyListener(new View.OnKeyListener() {
+            @Override public boolean onKey(View v, int keyCode, KeyEvent e) {
+                if (e.getAction() != KeyEvent.ACTION_DOWN) return false;
+                if (keyCode != KeyEvent.KEYCODE_DPAD_DOWN && keyCode != KeyEvent.KEYCODE_DPAD_UP) return false;
+                View target = gridNeighbour(v, keyCode == KeyEvent.KEYCODE_DPAD_DOWN ? 7 : -7);
+                if (target != null) { target.requestFocus(); return true; }
+                return true; // first/last row: stay, never jump to the end
+            }
+        });
         circle.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 if (movingPkg != null) return;
