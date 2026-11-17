@@ -1,0 +1,55 @@
+{
+ "verified": "2026-11-14 live: anonymous handshake + homescreen, no key, no login",
+ "endpoints": {
+  "signing_key": "POST https://account.production-public.tubi.io/device/anonymous/signing_key",
+  "token": "POST https://account.production-public.tubi.io/device/anonymous/token (TUBI-HMAC-SHA256)",
+  "homescreen": "GET https://tensor-cdn.production-public.tubi.io/api/v8/homescreen"
+ },
+ "sample": [
+  {
+   "id": "100062066",
+   "title": "Don't Quit",
+   "year": 2026,
+   "detailed_type": "movie",
+   "poster": "https://canvas-lb.tubitv.com/opts/AaL2yWqHDffoAg==/f9d97b6c-023e-40a6-a5d3-8143e744c573/CJADEL4EIghvcmlnaW5hbCoGYm90dG9tMgRkYXJrOgUxLjEuOQ==",
+   "landscape": "https://canvas-lb.tubitv.com/opts/bw1_vWqOgzmCzQ==/41a5029d-f033-4cb2-bf7e-333583c25c49/CMADEPwBIghvcmlnaW5hbCoGYm90dG9tMgRkYXJrOgUxLjEuOQ==",
+   "genre": "Thriller, Drama, Sport"
+  },
+  {
+   "id": "667315",
+   "title": "Coraline",
+   "year": 2009,
+   "detailed_type": "movie",
+   "poster": "https://canvas-lb.tubitv.com/opts/p1OrdxWRM2SazQ==/0f006fd8-e638-48ef-9283-423baaa9500e/CJADEL4EOgUxLjEuOQ==",
+   "landscape": "https://canvas-lb.tubitv.com/opts/y3o0_rKS0gRXbQ==/51b7f048-40de-447d-ae0f-fec27abcb20b/CMADEPwBOgUxLjEuOQ==",
+   "genre": "Fantasy, Drama, Animation, Kids & Family, Horror"
+  },
+  {
+   "id": "550824",
+   "title": "The Hunger Games",
+   "year": 2012,
+   "detailed_type": "movie",
+   "poster": "https://canvas-lb.tubitv.com/opts/h2iVAQqbkXySgw==/60a6fe7d-5c57-46e6-bb82-3ae932a9cfef/CJADEL4EOgUxLjEuOQ==",
+   "landscape": "https://canvas-lb.tubitv.com/opts/Kxw2Acl_wAqROg==/03bbfeea-fa36-4d58-896b-f2e68381dbef/CMADEPwBOgUxLjEuOQ==",
+   "genre": "Sci-Fi, Action"
+  },
+  {
+   "id": "100016345",
+   "title": "Sing",
+   "year": 2016,
+   "detailed_type": "movie",
+   "poster": "https://canvas-lb.tubitv.com/opts/roBtxUzw6RdFNQ==/860261eb-d848-43a9-97ab-ab1a3ad81d48/CJADEL4EOgUxLjEuOQ==",
+   "landscape": "https://canvas-lb.tubitv.com/opts/HclDy6fvHgcwKA==/35cb9145-8f1e-4dfc-86fb-11dd244108fd/CMADEPwBOgUxLjEuOQ==",
+   "genre": "Kids & Family, Animation, Comedy, Musicals"
+  },
+  {
+   "id": "594084",
+   "title": "I Am Legend",
+   "year": 2007,
+   "detailed_type": "movie",
+   "poster": "https://canvas-lb.tubitv.com/opts/gZUwSK837EJKNA==/8d00d641-099c-4692-8d51-c09fc85bba1c/CJADEL4EOgUxLjEuOQ==",
+   "landscape": "https://canvas-lb.tubitv.com/opts/ga3Q_gyM1GZtag==/ad448d5c-53c5-4216-b94e-9399ad6e0b79/CMADEPwBOgUxLjEuOQ==",
+   "genre": "Sci-Fi, Horror, Thriller"
+  }
+ ]
+}

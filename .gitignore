@@ -1,0 +1,13 @@
+# Build outputs - never commit these
+*.apk
+*.jar
+*.class
+classes/
+gen/
+dexout/
+testclasses/
+compiled.zip
+aligned.apk
+base.apk
+pkg.apk
+classes.jar

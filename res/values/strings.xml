@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="power_service_desc">Lets Cemba Home open the power menu (Power off / Restart) from the Box settings.</string>
+</resources>
