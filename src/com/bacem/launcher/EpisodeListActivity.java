@@ -99,11 +99,12 @@ public class EpisodeListActivity extends Activity {
                 Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
                 i.setComponent(new ComponentName(pk, "dev.cobalt.app.MainActivity"));
                 i.putExtra("url", url);
-                // v4.37: CLEAR_TASK so each episode opens in a fresh
-                // Cobalt. Without it every video stacked on Cobalt's own
-                // back pile, and Back walked through YouTube screens
-                // 3-4 times before reaching the episode list.
-                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                // v4.38: CLEAR_TASK is OUT -- it forced a fresh Cobalt
+                // every time, and a fresh Cobalt shows its home instead
+                // of the video. NEW_TASK only (as in v4.36) lets the
+                // running Cobalt play the video. Back walks YouTube
+                // screens again for now -- that needs a different fix.
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(i);
                 return true;
             } catch (Exception e) { /* try next */ }

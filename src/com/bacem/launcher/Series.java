@@ -197,6 +197,23 @@ public class Series {
     // from the playlists and come from the Watania 2 channel instead
     // (verified full episodes): S1 ep 11 eXcp9LcpkK8 (55 min), S2 ep 13
     // 8fT0wc4WTG8 (62 min), S2 ep 15 q-d0UNgsojs.
+    // v4.38: seasons per series (his design -- series title first, then
+    // its seasons, then the episodes). Each entry is {season key, label}.
+    // Choufli Hal: 5 seasons, one per year 2005-2009. El Khottab Al Bab:
+    // 2 seasons, 1996 and 1997.
+    public static final String[][] SEASONS_CHOUFLI = {
+        {"2005", "Season 1 - 2005"}, {"2006", "Season 2 - 2006"},
+        {"2007", "Season 3 - 2007"}, {"2008", "Season 4 - 2008"},
+        {"2009", "Season 5 - 2009"},
+    };
+    public static final String[][] SEASONS_KHOTTAB = {
+        {"S1", "Season 1 - 1996"}, {"S2", "Season 2 - 1997"},
+    };
+    public static String[][] seasonsFor(String series) {
+        if ("khottab".equals(series)) return SEASONS_KHOTTAB;
+        return SEASONS_CHOUFLI;
+    }
+
     public static Ep[] episodesFor(String series, String season) {
         if ("khottab".equals(series)) {
             if ("S1".equals(season)) return EP_KHOTTAB_S1;

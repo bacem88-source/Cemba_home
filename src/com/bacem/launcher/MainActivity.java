@@ -5672,11 +5672,11 @@ public class MainActivity extends Activity {
                 Intent i = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url));
                 i.setComponent(new android.content.ComponentName(pk, "dev.cobalt.app.MainActivity"));
                 i.putExtra("url", url);
-                // v4.37: CLEAR_TASK so a video opens in a fresh Cobalt
-                // and one Back returns to Cemba instead of stacking videos
-                // on Cobalt's back pile. bringCobaltToFront is untouched --
-                // it must keep the playing video.
-                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                // v4.38: CLEAR_TASK out (see EpisodeListActivity) -- a
+                // fresh Cobalt shows its home, not the video.
+                // bringCobaltToFront is untouched -- it must keep the
+                // playing video.
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(i);
                 return true;
             } catch (Exception e) { /* try next */ }

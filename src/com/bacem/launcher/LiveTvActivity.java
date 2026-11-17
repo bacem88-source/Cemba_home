@@ -30,6 +30,7 @@ public class LiveTvActivity extends Activity {
     // kind 0 = YouTube, opens in Cobalt; kind 1 = free HLS, plays in
     // PlayerActivity; kind 2 = provider HLS; kind 3 = provider hint row.
     // kind 4 = series season, opens the Cemba episode list (v4.36).
+    // kind 5 = series title, opens the season list (v4.38).
     // ua = optional User-Agent override for the player (L'Equipe needs a
     // desktop Chrome UA); null means the default.
     static class Ch {
@@ -151,16 +152,12 @@ public class LiveTvActivity extends Activity {
     // Season by season (his ask), using the season playlists the
     // Choufli Hal channel itself links to. Watania Replay also has one
     // official playlist for the whole sitcom, but he wants it by season.
+    // v4.38: one title card per series (his design) -- tap the series,
+    // then its seasons (S1, S2, ...), then the episodes. The per-season
+    // cards are gone; the seasons live in Series.seasonsFor.
     static final Ch[] SERIES = {
-        new Ch("Choufli Hal 2005", "Season 1 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q8dUWcl-f1M5kf_KhwQAhNY", 0xFFC62828, 0, "05", 4, null, "choufli"),
-        new Ch("Choufli Hal 2006", "Season 2 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q_2aTOKeMhkDhfR-il5S8Cn", 0xFFC62828, 0, "06", 4, null, "choufli"),
-        new Ch("Choufli Hal 2007", "Season 3 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q8RgjOKZB9t1KJHmRDio6u3", 0xFFC62828, 0, "07", 4, null, "choufli"),
-        new Ch("Choufli Hal 2008", "Season 4 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q_n8dmyc_2QOwiP5sN2ax6D", 0xFFC62828, 0, "08", 4, null, "choufli"),
-        new Ch("Choufli Hal 2009", "Season 5 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q-fUq2C2-_82RcQ1-I9UPd7", 0xFFC62828, 0, "09", 4, null, "choufli"),
-        // v4.37: El Khottab Al Bab (his ask) -- same as Choufli Hal, season
-        // by season with episode lists. 2 seasons x 15 episodes (1996/1997).
-        new Ch("El Khottab S1", "Season 1 - 1996 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLS4sEUpuUmKiTVRfH9eqGGBhiKCwJEOhu", 0xFF00695C, 0, "K1", 4, null, "khottab"),
-        new Ch("El Khottab S2", "Season 2 - 1997 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLS4sEUpuUmKgYF-zD6bZT-Dus9uYYJPrq", 0xFF00695C, 0, "K2", 4, null, "khottab"),
+        new Ch("Choufli Hal", "Tunisian sitcom - 5 seasons, 2005-2009", "https://www.youtube.com/playlist?list=PLtKHe7Z2QnnH8hjtv4Ehv4x00ZDIhifUr", 0xFFC62828, 0, "CH", 5, null, "choufli"),
+        new Ch("El Khottab Al Bab", "Tunisian sitcom - 2 seasons, 1996-1997", "https://www.youtube.com/playlist?list=PLS4sEUpuUmKiTVRfH9eqGGBhiKCwJEOhu", 0xFF00695C, 0, "KB", 5, null, "khottab"),
         // v4.37: free series channels (verified live 2026-11-17) -- live
         // series TV, alongside the season episode lists above.
         new Ch("Bab Al Hara", "Series - Arabic - free", "https://shd-amg-fast.edgenextcdn.net/tx010/playlist.m3u8", 0xFF5D4037, 0, "BH", 1),
@@ -627,7 +624,14 @@ public class LiveTvActivity extends Activity {
         if (shown.isEmpty()) return;
         Ch c = shown.get(chSel);
         if (c.kind == 3) { Toast.makeText(this, "Add your provider in Settings > My IPTV", Toast.LENGTH_SHORT).show(); return; }
-        if (c.kind == 4) {
+        if (c.kind == 5) {
+            // v4.38: a series title opens its season list.
+            String series = c.series != null ? c.series : "choufli";
+            Intent i = new Intent(this, SeasonListActivity.class);
+            i.putExtra("series", series);
+            i.putExtra("title", c.name);
+            startActivity(i);
+        } else if (c.kind == 4) {
             // v4.36: a series season opens the Cemba episode list.
             // v4.37: the series key travels too (choufli / khottab); the
             // season is the last 4 chars for Choufli Hal (the year) and
@@ -659,9 +663,9 @@ public class LiveTvActivity extends Activity {
                 Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
                 i.setComponent(new ComponentName(pk, "dev.cobalt.app.MainActivity"));
                 i.putExtra("url", url);
-                // v4.37: CLEAR_TASK -- same as the episode list, one Back
-                // returns to the guide instead of walking YouTube screens.
-                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                // v4.38: CLEAR_TASK out (see EpisodeListActivity) -- a
+                // fresh Cobalt shows its home, not the video.
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(i);
                 return true;
             } catch (Exception e) { /* try next */ }
