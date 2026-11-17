@@ -4,10 +4,11 @@ package com.bacem.launcher;
 // playlists (pulled 2026-11-17). One video per episode number; the
 // 2006 playlist listed two episodes twice, the extra copies are dropped.
 // Titles are stored as unicode escapes because the build compiles US-ASCII.
-// Total: 262 items -- Choufli Hal 134 (2005: 30, 2006: 30, 2007: 30,
+// Total: 290 items -- Choufli Hal 134 (2005: 30, 2006: 30, 2007: 30,
 // 2008: 29, 2009: 15) + El Khottab Al Bab 30 (S1: 15, S2: 15)
 // + Pokemon 90 (S1 Indigo League: 50, S2 Orange Islands: 40)
-// + Conan Movies 8 + Conan episodes 17 (partial list).
+// + Conan Movies 8 + Conan episodes 17 (partial list)
+// + Smurfs episodes 11.
 // 2008 episode 12 is not in its YouTube playlist.
 public class Series {
     public static class Ep {
@@ -328,7 +329,7 @@ public class Series {
         new Ep("eyjTG25bOdw", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 6"),
         new Ep("qfKr7MNUn9Y", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 7"),
         new Ep("Cu8apFuBhjs", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 10"),
-        new Ep("S_jjX5K68VI", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 14"),
+        new Ep("mnFa13zA7wI", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 14"),
         new Ep("V0Gk5p4PZ-o", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 16"),
         new Ep("ofqfAluoqpE", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 17"),
         new Ep("864TqXDQh0o", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 19"),
@@ -343,6 +344,27 @@ public class Series {
         new Ep("dEAzuc1UoQk", "\u0627\u0644\u0645\u062d\u0642\u0642 \u0643\u0648\u0646\u0627\u0646 - \u0627\u0644\u062d\u0644\u0642\u0629 204"),
     };
     public static final String[][] SEASONS_CONAN = {
+        {"S1", "Episodes"},
+    };
+    // v4.43: Smurfs -- official Smurfs Arabic channel, full remastered
+    // episodes. 11 verified (oEmbed 200) on 2026-11-17: 4 full episodes
+    // (~21-22 min) + 7 segments (~11 min each, a complete story -- a
+    // classic Smurfs episode is 22 min with 2 segments). Duplicates and
+    // the long compilations in the remastered playlist dropped.
+    public static final Ep[] EP_SMURFS_S1 = {
+        new Ep("lYWkQA33zQs", "\u0627\u0644\u0633\u0646\u0627\u0641\u0631 - \u0633\u0646\u0641\u0648\u0631 \u0631\u0627\u0626\u062f \u0627\u0644\u0641\u0636\u0627\u0621"),
+        new Ep("p9jEKMfeDp0", "\u0627\u0644\u0633\u0646\u0627\u0641\u0631 - \u0646\u0638\u0627\u0631\u0627\u062a \u0627\u0644\u0633\u0646\u0627\u0641\u0631 \u0627\u0644\u0645\u0644\u0648\u0646\u0629"),
+        new Ep("UFOf8nAaVbw", "\u0627\u0644\u0633\u0646\u0627\u0641\u0631 - \u062d\u0633\u0627\u0621 \u0627\u0644\u0633\u0646\u0627\u0641\u0631"),
+        new Ep("sgt2dT3_dGU", "\u0627\u0644\u0633\u0646\u0627\u0641\u0631 - \u0645\u0634\u0643\u0644\u0629 \u0627\u0644\u0632\u063a\u0628"),
+        new Ep("QOwZFZWUYJg", "\u0627\u0644\u0633\u0646\u0627\u0641\u0631 - \u0627\u0644\u0628\u064a\u0636\u0629 \u0627\u0644\u0639\u062c\u064a\u0628\u0629"),
+        new Ep("0JpvT7ZUYMM", "\u0627\u0644\u0633\u0646\u0627\u0641\u0631 - \u0627\u0644\u0633\u0646\u0641\u0648\u0631 \u0627\u0644\u062e\u0627\u0631\u0642"),
+        new Ep("IQPrLpVkI68", "\u0627\u0644\u0633\u0646\u0627\u0641\u0631 - \u0627\u0644\u0633\u0646\u0627\u0641\u0631 \u0630\u0648 \u0627\u0644\u0644\u0648\u0646 \u0627\u0644\u0628\u0646\u0641\u0633\u062c\u064a"),
+        new Ep("zdT-a9iuhok", "\u0627\u0644\u0633\u0646\u0627\u0641\u0631 - \u0633\u0643\u0648\u064a\u0643\u0649"),
+        new Ep("PVJ5lOrCgQs", "\u0627\u0644\u0633\u0646\u0627\u0641\u0631 - \u0648\u0627\u062d\u062f \u0633\u0646\u0641\u0648\u0631 \u062c\u064a\u062f \u064a\u0633\u062a\u062d\u0642 \u0627\u0644\u0622\u062e\u0631"),
+        new Ep("Mmaq451MdQE", "\u0627\u0644\u0633\u0646\u0627\u0641\u0631 - \u0630\u0627\u062a \u0645\u0631\u0629 \u0641\u064a \u0627\u0644\u0642\u0645\u0631 \u0627\u0644\u0627\u0632\u0631\u0642"),
+        new Ep("C0OkKekzCes", "\u0627\u0644\u0633\u0646\u0627\u0641\u0631 - \u0625\u0646\u0642\u0627\u0630 \u062c\u0632\u064a\u0631\u0629 \u0627\u0644\u0639\u0627\u0635\u0641\u0629"),
+    };
+    public static final String[][] SEASONS_SMURFS = {
         {"S1", "Episodes"},
     };
     public static final String[][] SEASONS_CHOUFLI = {
@@ -366,6 +388,7 @@ public class Series {
         if ("pokemon".equals(series)) return SEASONS_POKEMON;
         if ("conanmovies".equals(series)) return SEASONS_CONAN_MOVIES;
         if ("conan".equals(series)) return SEASONS_CONAN;
+        if ("smurfs".equals(series)) return SEASONS_SMURFS;
         return SEASONS_CHOUFLI;
     }
 
@@ -386,6 +409,10 @@ public class Series {
         }
         if ("conan".equals(series)) {
             if ("S1".equals(season)) return EP_CONAN_S1;
+            return new Ep[0];
+        }
+        if ("smurfs".equals(series)) {
+            if ("S1".equals(season)) return EP_SMURFS_S1;
             return new Ep[0];
         }
         if ("2005".equals(season)) return EP_2005;

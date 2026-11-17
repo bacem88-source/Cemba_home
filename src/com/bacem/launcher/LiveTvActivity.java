@@ -227,6 +227,9 @@ public class LiveTvActivity extends Activity {
         // found on YouTube after a full 1-100 sweep), same title-card
         // flow as Choufli Hal.
         new Ch("Conan", "Kids series - Arabic dubbed, 17 episodes", "https://www.youtube.com/results?search_query=\u0627\u0644\u0645\u062d\u0642\u0642+\u0643\u0648\u0646\u0627\u0646+\u0645\u062f\u0628\u0644\u062c", 0xFFD32F2F, 0, "CN", 5, null, "conan"),
+        // v4.43: Smurfs -- official Smurfs Arabic channel, 11 verified
+        // full remastered episodes, same title-card flow as Conan.
+        new Ch("Smurfs", "Kids series - Arabic dubbed, 11 episodes", "https://www.youtube.com/playlist?list=PL9gKglGE2NdF68U5Oaz6Ncv6qQJdVNwEU", 0xFF2196F3, 0, "SM", 5, null, "smurfs"),
     };
     static final String[] CATS = { "All channels", "Tunisia", "News \u2014 free", "Arabic", "Sport", "YouTube live", "World", "Series", "Documentary", "Movies", "Kids Movies", "Kids Series", "Kids" };
     // v4.41: Kids categories in CATS -- Kids Movies (10), Kids Series
