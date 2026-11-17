@@ -25,11 +25,13 @@ public class EpisodeListActivity extends Activity {
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
+        String series = getIntent().getStringExtra("series");
         String season = getIntent().getStringExtra("season");
         String title = getIntent().getStringExtra("title");
+        if (series == null) series = "choufli";
         if (season == null) season = "";
         if (title == null) title = "Choufli Hal";
-        Series.Ep[] eps = Series.episodesFor(season);
+        Series.Ep[] eps = Series.episodesFor(series, season);
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -97,7 +99,11 @@ public class EpisodeListActivity extends Activity {
                 Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
                 i.setComponent(new ComponentName(pk, "dev.cobalt.app.MainActivity"));
                 i.putExtra("url", url);
-                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                // v4.37: CLEAR_TASK so each episode opens in a fresh
+                // Cobalt. Without it every video stacked on Cobalt's own
+                // back pile, and Back walked through YouTube screens
+                // 3-4 times before reaching the episode list.
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(i);
                 return true;
             } catch (Exception e) { /* try next */ }

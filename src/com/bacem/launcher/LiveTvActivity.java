@@ -33,10 +33,15 @@ public class LiveTvActivity extends Activity {
     // ua = optional User-Agent override for the player (L'Equipe needs a
     // desktop Chrome UA); null means the default.
     static class Ch {
-        String name, sub, url, init, ua; int color, logo, kind;
-        Ch(String n, String s, String u, int c, int l, String i, int k) { this(n, s, u, c, l, i, k, null); }
+        String name, sub, url, init, ua, series; int color, logo, kind;
+        Ch(String n, String s, String u, int c, int l, String i, int k) { this(n, s, u, c, l, i, k, null, null); }
         Ch(String n, String s, String u, int c, int l, String i, int k, String ua) {
-            name = n; sub = s; url = u; color = c; logo = l; init = i; kind = k; this.ua = ua;
+            this(n, s, u, c, l, i, k, ua, null);
+        }
+        // v4.37: kind-4 series seasons carry their series key ("choufli" /
+        // "khottab") so the episode list knows which show to load.
+        Ch(String n, String s, String u, int c, int l, String i, int k, String ua, String series) {
+            name = n; sub = s; url = u; color = c; logo = l; init = i; kind = k; this.ua = ua; this.series = series;
         }
     }
     static final String DESK_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
@@ -79,7 +84,6 @@ public class LiveTvActivity extends Activity {
         new Ch("Al Jazeera Mubasher", "News - Arabic - free", "https://live-hls-apps-ajm-fa.getaj.net/AJM/index.m3u8", 0xFF0F2A44, 0, "JM", 1),
         new Ch("Al Mayadeen TV", "News - Arabic - free", "https://mdnlv.cdn.octivid.com/almdn/smil:mpegts.stream.smil/playlist.m3u8", 0xFFB71C1C, 0, "MY", 1),
         new Ch("Al Arabiya Business", "Business - Arabic - free", "https://live.alarabiya.net/alarabiapublish/aswaaq.smil/playlist.m3u8", 0xFF6A1B9A, 0, "AB", 1),
-        new Ch("Al Arabiya Programs", "Documentary - Arabic - free", "https://live.alarabiya.net/alarabiapublish/aaprograms.smil/playlist.m3u8", 0xFF37474F, 0, "AP", 1),
     };
     // v3.66: free Arabic general (Watania 1/2 are direct HLS now, no YouTube).
     static final Ch[] AR_GEN = {
@@ -89,8 +93,6 @@ public class LiveTvActivity extends Activity {
         new Ch("Al Saudiya", "Saudi - general - free", "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-saudi-tv/2ad66056b51fd8c1b624854623112e43/index.m3u8", 0xFF00695C, 0, "SA", 1),
         new Ch("KTV 1", "Kuwait - general - free", "https://kwtktv1ta.cdn.mangomolo.com/ktv1/smil:ktv1.stream.smil/chunklist.m3u8", 0xFF5D4037, 0, "K1", 1),
         new Ch("MBC Masr", "Egypt - shows - free", "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-masr/956eac069c78a35d47245db6cdbb1575/index.m3u8", 0xFFAD1457, 0, "MM", 1),
-        new Ch("Asharq Documentary", "Documentary - Arabic - free", "https://svs.itworkscdn.net/asharqdocumentarylive/asharqdocumentary.smil/playlist_dvr.m3u8", 0xFF5D4037, 0, "AD", 1),
-        new Ch("Asharq Discovery", "Documentary - Arabic - free", "https://svs.itworkscdn.net/asharqdiscoverylive/asharqd.smil/playlist_dvr.m3u8", 0xFF6A1B9A, 0, "AS", 1),
         new Ch("MBC 4", "Entertainment - Arabic - free", "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-4/24f134f1cd63db9346439e96b86ca6ed/index.m3u8", 0xFFAD1457, 0, "M4", 1),
         new Ch("MTV Lebanon", "General - Lebanon - free", "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mtv-lebanon/b8ebb2a5affb812f1541712adde10e26/index.m3u8", 0xFF1565C0, 0, "ML", 1),
         new Ch("Al Jadeed", "General - Lebanon - free", "http://185.9.2.18/chid_391/mono.m3u8", 0xFF2E7D32, 0, "JD", 1),
@@ -102,13 +104,14 @@ public class LiveTvActivity extends Activity {
     // No ESPN/Sky/DAZN -- those are paid channels; only free-to-air sport
     // is bundled here otherwise.
     static final Ch[] SPORT = {
+        // v4.37: beIN Sports 1 first in Sport (his ask).
+        new Ch("beIN Sports 1", "Sport - beIN - free restream", "https://cp11.adabmedia.com/hls2/bein1.m3u8", 0xFF6A1B9A, 0, "b1", 1),
         new Ch("KTV Sport", "Kuwait - sport - free", "https://kwtspta.cdn.mangomolo.com/sp/smil:sp.stream.smil/chunklist.m3u8", 0xFF1B5E20, 0, "KS", 1),
         new Ch("KTV Sport Plus", "Kuwait - sport - free", "https://kwtsplta.cdn.mangomolo.com/spl/smil:spl.stream.smil/chunklist.m3u8", 0xFF2E7D32, 0, "KP", 1),
         new Ch("Jordan Sport", "Jordan - sport - free", "https://jrtv-live.ercdn.net/jordansporthd/jordansporthd.m3u8", 0xFF1565C0, 0, "JS", 1),
         new Ch("Al Iraqia Sport", "Iraq - sport - free", "https://imn-live.esite-lab.com/hls/iraqia-sports-1.m3u8", 0xFF6A1B9A, 0, "IS", 1),
         new Ch("Bahrain Sports 1", "Bahrain - sport - free", "https://5c7b683162943.streamlock.net/live/ngrp:sportsone_all/playlist.m3u8", 0xFFEF6C00, 0, "B1", 1),
         new Ch("Bahrain Sports 2", "Bahrain - sport - free", "https://5c7b683162943.streamlock.net/live/ngrp:bahrainsportstwo_all/playlist.m3u8", 0xFF00897B, 0, "B2", 1),
-        new Ch("beIN Sports 1", "Sport - beIN - free restream", "https://cp11.adabmedia.com/hls2/bein1.m3u8", 0xFF6A1B9A, 0, "b1", 1),
         new Ch("Red Bull TV", "Action sport - free", "https://3ea22335.wurl.com/master/f36d25e7e52f1ba8d7e56eb859c636563214f541/UmFrdXRlblRWLWdiX1JlZEJ1bGxUVl9ITFM/playlist.m3u8", 0xFFC62828, 0, "RB", 1),
         new Ch("FIFA+", "Football - 24/7 - free", "https://d2w9q46ikgrcwx.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-of5cbk3sav3w5/v1/sysdata_s_p_a_fifa_7/samsungheadend_us/latest/main/hls/playlist.m3u8", 0xFF0D47A1, 0, "F+", 1),
         new Ch("Sportitalia", "Italy - football - free", "https://edge-001.streamup.eu/sportitalia/sihd_abr/playlist.m3u8", 0xFF1B5E20, 0, "SI", 1),
@@ -122,19 +125,50 @@ public class LiveTvActivity extends Activity {
         new Ch("TV5Monde", "General - French - free", "https://n-5-2.eu.cdn-redge.media/livehls/oeu/mt/live/tv5_monde_fbs/live.livx/playlist.m3u8", 0xFF0D47A1, 0, "T5", 1),
         new Ch("PBS Kids", "Kids - English - free", "https://livestream.pbskids.org/out/v1/14507d931bbe48a69287e4850e53443c/est.m3u8", 0xFF8E24AA, 0, "PK", 1),
     };
+    // v4.37: free documentary channels (verified live 2026-11-17).
+    // Asharq Documentary/Discovery + Al Arabiya Programs moved here out of
+    // the Arabic arrays so they show once (in All and here). Histoire TV
+    // and Science & Vie TV use the final n-5-1 host -- the r.eu host 302s.
+    static final Ch[] DOC = {
+        new Ch("Asharq Documentary", "Documentary - Arabic - free", "https://svs.itworkscdn.net/asharqdocumentarylive/asharqdocumentary.smil/playlist_dvr.m3u8", 0xFF5D4037, 0, "AD", 1),
+        new Ch("Asharq Discovery", "Documentary - Arabic - free", "https://svs.itworkscdn.net/asharqdiscoverylive/asharqd.smil/playlist_dvr.m3u8", 0xFF6A1B9A, 0, "AS", 1),
+        new Ch("Al Arabiya Programs", "Documentary - Arabic - free", "https://live.alarabiya.net/alarabiapublish/aaprograms.smil/playlist.m3u8", 0xFF37474F, 0, "AP", 1),
+        new Ch("NatureTime France", "Nature - French - free", "https://bamusa-naturetime-emea-fra-rakuten.amagi.tv/playlist.m3u8", 0xFF2E7D32, 0, "NT", 1),
+        new Ch("Histoire TV", "History - French - free", "https://n-5-1.eu.cdn-redge.media/livehls/oeu/mt/live/histoire/live.livx/playlist.m3u8", 0xFF6D4C41, 0, "HI", 1),
+        new Ch("Science & Vie TV", "Science - French - free", "https://n-5-1.eu.cdn-redge.media/livehls/oeu/mt/live/science_et_vie/live.livx/playlist.m3u8", 0xFF1565C0, 0, "SV", 1),
+    };
+    // v4.37: free movie channels (verified live 2026-11-17, iptv-org lists).
+    static final Ch[] MOVIES = {
+        new Ch("Aflam", "Movies - Arabic - free", "https://shd-amg-fast.edgenextcdn.net/tx001/playlist.m3u8", 0xFFC62828, 0, "AF", 1),
+        new Ch("iFilm Arabic", "Movies - Arabic - free", "https://live.presstv.co.uk/hls/ifilmar.m3u8", 0xFFAD1457, 0, "IF", 1),
+        new Ch("Mix Hollywood", "Movies - Hollywood - free", "https://ml-pull-hwc.myco.io/MixTV/hls/index.m3u8", 0xFF6A1B9A, 0, "MH", 1),
+        new Ch("Movies Action", "Action movies - free", "https://shd-amg-fast.edgenextcdn.net/tx011/playlist.m3u8", 0xFFEF6C00, 0, "MA", 1),
+        new Ch("Movies Thriller", "Thriller movies - free", "https://shd-amg-fast.edgenextcdn.net/tx012/playlist.m3u8", 0xFF37474F, 0, "MT", 1),
+        new Ch("MBC Bollywood", "Bollywood movies - free", "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-bollywood/546eb40d7dcf9a209255dd2496903764/index.m3u8", 0xFF8E24AA, 0, "MB", 1),
+    };
     // v4.35: series on YouTube (VOD playlists, kind 0 = opens in Cobalt).
     // Choufli Hal: Tunisian sitcom, 6 seasons / 135 episodes, 2005-2009.
     // Season by season (his ask), using the season playlists the
     // Choufli Hal channel itself links to. Watania Replay also has one
     // official playlist for the whole sitcom, but he wants it by season.
     static final Ch[] SERIES = {
-        new Ch("Choufli Hal 2005", "Season 1 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q8dUWcl-f1M5kf_KhwQAhNY", 0xFFC62828, 0, "05", 4),
-        new Ch("Choufli Hal 2006", "Season 2 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q_2aTOKeMhkDhfR-il5S8Cn", 0xFFC62828, 0, "06", 4),
-        new Ch("Choufli Hal 2007", "Season 3 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q8RgjOKZB9t1KJHmRDio6u3", 0xFFC62828, 0, "07", 4),
-        new Ch("Choufli Hal 2008", "Season 4 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q_n8dmyc_2QOwiP5sN2ax6D", 0xFFC62828, 0, "08", 4),
-        new Ch("Choufli Hal 2009", "Season 5 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q-fUq2C2-_82RcQ1-I9UPd7", 0xFFC62828, 0, "09", 4),
+        new Ch("Choufli Hal 2005", "Season 1 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q8dUWcl-f1M5kf_KhwQAhNY", 0xFFC62828, 0, "05", 4, null, "choufli"),
+        new Ch("Choufli Hal 2006", "Season 2 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q_2aTOKeMhkDhfR-il5S8Cn", 0xFFC62828, 0, "06", 4, null, "choufli"),
+        new Ch("Choufli Hal 2007", "Season 3 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q8RgjOKZB9t1KJHmRDio6u3", 0xFFC62828, 0, "07", 4, null, "choufli"),
+        new Ch("Choufli Hal 2008", "Season 4 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q_n8dmyc_2QOwiP5sN2ax6D", 0xFFC62828, 0, "08", 4, null, "choufli"),
+        new Ch("Choufli Hal 2009", "Season 5 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLJ42SUYk3_Q-fUq2C2-_82RcQ1-I9UPd7", 0xFFC62828, 0, "09", 4, null, "choufli"),
+        // v4.37: El Khottab Al Bab (his ask) -- same as Choufli Hal, season
+        // by season with episode lists. 2 seasons x 15 episodes (1996/1997).
+        new Ch("El Khottab S1", "Season 1 - 1996 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLS4sEUpuUmKiTVRfH9eqGGBhiKCwJEOhu", 0xFF00695C, 0, "K1", 4, null, "khottab"),
+        new Ch("El Khottab S2", "Season 2 - 1997 - Tunisian sitcom", "https://www.youtube.com/playlist?list=PLS4sEUpuUmKgYF-zD6bZT-Dus9uYYJPrq", 0xFF00695C, 0, "K2", 4, null, "khottab"),
+        // v4.37: free series channels (verified live 2026-11-17) -- live
+        // series TV, alongside the season episode lists above.
+        new Ch("Bab Al Hara", "Series - Arabic - free", "https://shd-amg-fast.edgenextcdn.net/tx010/playlist.m3u8", 0xFF5D4037, 0, "BH", 1),
+        new Ch("Maraya", "Series - Arabic - free", "https://shd-amg-fast.edgenextcdn.net/tx008/playlist.m3u8", 0xFF6A1B9A, 0, "MR", 1),
+        new Ch("MBC Drama USA", "Series - Arabic - free", "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-drama-usa/ea2f5db904aff224b7066e59c7f585a2/index.m3u8", 0xFFAD1457, 0, "MD", 1),
+        new Ch("MBC Masr Drama", "Series - Egypt - free", "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-masr-drama/567b703c19ede6598222de81b0e4508b/index.m3u8", 0xFF00897B, 0, "ME", 1),
     };
-    static final String[] CATS = { "All channels", "Tunisia", "News \u2014 free", "Arabic", "Sport", "YouTube live", "World", "Series" };
+    static final String[] CATS = { "All channels", "Tunisia", "News \u2014 free", "Arabic", "Sport", "YouTube live", "World", "Series", "Documentary", "Movies" };
     static final int GRID_COLS = 4;
 
     LinearLayout catCol, gridCol;
@@ -299,7 +333,7 @@ public class LiveTvActivity extends Activity {
     void buildChannels() {
         shown.clear();
         if (cat == 0) {
-            addAll(YT); addAll(FREE); addAll(AR_NEWS); addAll(AR_GEN); addAll(SPORT); addAll(WORLD); addAll(SERIES);
+            addAll(YT); addAll(FREE); addAll(AR_NEWS); addAll(AR_GEN); addAll(SPORT); addAll(WORLD); addAll(SERIES); addAll(DOC); addAll(MOVIES);
             if (iptvConfiguredHere()) {
                 if (iptv.isEmpty()) {
                     shown.add(new Ch(iptvLoading ? "Loading provider channels..." : "No provider channels found", iptvLoading ? "Please wait" : "Test the connection in Settings > My IPTV", null, 0xFF3A4152, 0, "?", 3));
@@ -313,7 +347,9 @@ public class LiveTvActivity extends Activity {
         else if (cat == 4) { addAll(SPORT); }
         else if (cat == 5) { addAll(YT); }
         else if (cat == 6) { addAll(WORLD); }
-        else { addAll(SERIES); }
+        else if (cat == 7) { addAll(SERIES); }
+        else if (cat == 8) { addAll(DOC); }
+        else { addAll(MOVIES); }
         // v3.69: search filter -- when a query is set, keep only channels
         // whose name contains it (case-insensitive), across the category.
         if (searchQuery != null && searchQuery.length() > 0) {
@@ -592,10 +628,16 @@ public class LiveTvActivity extends Activity {
         Ch c = shown.get(chSel);
         if (c.kind == 3) { Toast.makeText(this, "Add your provider in Settings > My IPTV", Toast.LENGTH_SHORT).show(); return; }
         if (c.kind == 4) {
-            // v4.36: a series season opens the Cemba episode list; the
-            // season year is the last 4 chars of the card name.
-            String season = c.name.length() >= 4 ? c.name.substring(c.name.length() - 4) : "";
+            // v4.36: a series season opens the Cemba episode list.
+            // v4.37: the series key travels too (choufli / khottab); the
+            // season is the last 4 chars for Choufli Hal (the year) and
+            // the last 2 chars for El Khottab ("S1" / "S2").
+            String series = c.series != null ? c.series : "choufli";
+            String season;
+            if ("khottab".equals(series)) season = c.name.length() >= 2 ? c.name.substring(c.name.length() - 2) : "";
+            else season = c.name.length() >= 4 ? c.name.substring(c.name.length() - 4) : "";
             Intent i = new Intent(this, EpisodeListActivity.class);
+            i.putExtra("series", series);
             i.putExtra("season", season);
             i.putExtra("title", c.name);
             startActivity(i);
@@ -617,7 +659,9 @@ public class LiveTvActivity extends Activity {
                 Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
                 i.setComponent(new ComponentName(pk, "dev.cobalt.app.MainActivity"));
                 i.putExtra("url", url);
-                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                // v4.37: CLEAR_TASK -- same as the episode list, one Back
+                // returns to the guide instead of walking YouTube screens.
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(i);
                 return true;
             } catch (Exception e) { /* try next */ }

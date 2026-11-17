@@ -1085,18 +1085,50 @@ public class MainActivity extends Activity {
                 String err = null;
                 java.io.File out = new java.io.File(getFilesDir(), "update.apk");
                 try {
-                    java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(apkUrl).openConnection();
-                    c.setConnectTimeout(10000);
-                    c.setReadTimeout(60000);
-                    c.setRequestMethod("GET");
-                    int code = c.getResponseCode();
-                    if (code >= 400) throw new Exception("HTTP " + code);
-                    java.io.InputStream in = c.getInputStream();
+                    // v4.37: follow GitHub's redirect by hand. The release
+                    // download URL answers 302 to the real file host, and
+                    // relying on HttpURLConnection's automatic redirect
+                    // left the N5 Max saving the redirect page instead of
+                    // the APK, so the installer said "problem parsing the
+                    // package". Follow up to 5 redirects manually.
+                    String url = apkUrl;
+                    java.io.InputStream in = null;
+                    for (int hop = 0; hop < 6; hop++) {
+                        java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+                        c.setConnectTimeout(10000);
+                        c.setReadTimeout(60000);
+                        c.setRequestMethod("GET");
+                        c.setInstanceFollowRedirects(false);
+                        int code = c.getResponseCode();
+                        if (code >= 300 && code < 400) {
+                            String loc = c.getHeaderField("Location");
+                            if (loc == null || loc.length() == 0) throw new Exception("redirect without Location");
+                            url = loc;
+                            c.disconnect();
+                            continue;
+                        }
+                        if (code >= 400) throw new Exception("HTTP " + code);
+                        in = c.getInputStream();
+                        break;
+                    }
+                    if (in == null) throw new Exception("no download");
                     java.io.FileOutputStream fos = new java.io.FileOutputStream(out);
                     byte[] buf = new byte[8192];
                     int n;
                     while ((n = in.read(buf)) > 0) fos.write(buf, 0, n);
                     fos.flush(); fos.close(); in.close();
+                    // The file must be a real APK (a ZIP). If GitHub gave
+                    // us an HTML page instead, refuse it here with a clear
+                    // message rather than letting the installer fail with
+                    // "problem parsing the package".
+                    java.io.FileInputStream fin = new java.io.FileInputStream(out);
+                    int b0 = fin.read();
+                    int b1 = fin.read();
+                    fin.close();
+                    if (out.length() < 1000000 || b0 != 'P' || b1 != 'K') {
+                        out.delete();
+                        throw new Exception("bad file");
+                    }
                 } catch (Exception e) {
                     err = String.valueOf(e.getMessage());
                 }
@@ -3058,6 +3090,10 @@ public class MainActivity extends Activity {
                 new Runnable() { @Override public void run() { try { startActivity(new Intent(Intent.ACTION_ASSIST).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); } catch (Exception e1) { try { startActivity(new Intent(Intent.ACTION_VOICE_COMMAND).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); } catch (Exception e2) { toast("Voice search isn't available on this box"); } } } });
             settingsRow(settingsContentCol, "Show song title", isNowPlayingListenerEnabled() ? "On - the Now Playing bar shows the real title" : "Off - tap to allow Notification access",
                 new Runnable() { @Override public void run() { try { startActivity(new Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); toast("Turn on Cemba Home, then come back"); } catch (Exception e) { toast("Notification settings not available on this box"); } } });
+            // v4.37: Check for updates lives under Launcher now, not Box --
+            // it updates Cemba Home itself, it is not a box setting.
+            settingsRow(settingsContentCol, "Check for updates", "Version " + appVersionName() + " - tap to check GitHub for a newer Cemba Home",
+                new Runnable() { @Override public void run() { checkForUpdates(true); } });
         } else if (settingsCat == 1) {
             // Kids
             settingsRow(settingsContentCol, "Kids apps",
@@ -3196,8 +3232,6 @@ public class MainActivity extends Activity {
                 new Runnable() { @Override public void run() { launchPackage("com.android.vending"); } });
             settingsRow(settingsContentCol, "Google TV Home", "The box's original home screen",
                 new Runnable() { @Override public void run() { launchPackage("com.google.android.apps.tv.launcherx"); } });
-            settingsRow(settingsContentCol, "Check for updates", "Version " + appVersionName() + " - tap to check GitHub for a newer Cemba Home",
-                new Runnable() { @Override public void run() { checkForUpdates(true); } });
         }
     }
 
@@ -5638,7 +5672,11 @@ public class MainActivity extends Activity {
                 Intent i = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url));
                 i.setComponent(new android.content.ComponentName(pk, "dev.cobalt.app.MainActivity"));
                 i.putExtra("url", url);
-                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                // v4.37: CLEAR_TASK so a video opens in a fresh Cobalt
+                // and one Back returns to Cemba instead of stacking videos
+                // on Cobalt's back pile. bringCobaltToFront is untouched --
+                // it must keep the playing video.
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(i);
                 return true;
             } catch (Exception e) { /* try next */ }
