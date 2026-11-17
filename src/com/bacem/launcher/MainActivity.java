@@ -2807,6 +2807,25 @@ public class MainActivity extends Activity {
         TextView newsChip = watchChips.get("news");
         if (newsChip != null) newsChip.setVisibility(View.VISIBLE);
         if (kidsAppChip != null) kidsAppChip.setVisibility(simple ? View.VISIBLE : View.GONE);
+        // v4.42: Kids mode -- the Watching panel shows only Continue
+        // watching Kids (his ask: only kids content in the Kids profile;
+        // his photo 2026-11-17 showed all 5 chips with Top picks empty).
+        // Top picks, Continue watching Family, Music and News hide, so
+        // Jannah never sees a family section or an empty Top picks. The
+        // Kids section itself is left alone -- it is the only one with
+        // content in Kids mode. On a box without a TV provider the Kids
+        // tab is already hidden (see isTvTabHidden) and the YouTube Kids
+        // chip takes its place, so the move-to-Kids only runs when the
+        // Kids tab is available.
+        if (kidsMode()) {
+            for (String k : new String[]{"picks", "watch", "music", "news"}) {
+                TextView chip = watchChips.get(k);
+                if (chip != null) chip.setVisibility(View.GONE);
+                LinearLayout sec = watchSecs.get(k);
+                if (sec != null) sec.setVisibility(View.GONE);
+            }
+            if (!"kids".equals(watchSection()) && !isTvTabHidden("kids")) showWatchSection("kids");
+        }
         // If the section we are on just got hidden, move to News (always
         // visible). Only then -- never yank focus on a plain resume.
         if (simple && isTvTabHidden(watchSection())) showWatchSection("news");
@@ -2829,6 +2848,10 @@ public class MainActivity extends Activity {
     }
 
     void showWatchSection(String k) {
+        // v4.42: Kids mode shows only Continue watching Kids -- any other
+        // section redirects to it (unless the Kids tab is hidden on this
+        // box, in which case the TV-tab check below takes over).
+        if (kidsMode() && !"kids".equals(k) && !isTvTabHidden("kids")) k = "kids";
         // v3.94: never show a TV tab that is hidden on this box -- fall back to News.
         if (isTvTabHidden(k)) k = "news";
         if (!watchSecs.containsKey(k)) k = "picks";
@@ -2838,8 +2861,15 @@ public class MainActivity extends Activity {
         // the tabs switch on focus, so moving across the chips wrote the
         // pref to disk on every focus move.
         if (!k.equals(watchSection())) getSharedPreferences("ui", MODE_PRIVATE).edit().putString("watch_section", k).apply();
-        for (java.util.Map.Entry<String, LinearLayout> e : watchSecs.entrySet())
-            e.getValue().setVisibility(k.equals(e.getKey()) ? View.VISIBLE : View.GONE);
+        for (java.util.Map.Entry<String, LinearLayout> e : watchSecs.entrySet()) {
+            boolean vis = k.equals(e.getKey());
+            // v4.42: Kids mode -- never show a non-kids section, even if
+            // it is the selected one. On a box without a TV provider the
+            // Kids tab itself is hidden, so every section stays hidden
+            // and the YouTube Kids chip is the only action.
+            if (kidsMode() && !"kids".equals(e.getKey())) vis = false;
+            e.getValue().setVisibility(vis ? View.VISIBLE : View.GONE);
+        }
         for (java.util.Map.Entry<String, TextView> e : watchChips.entrySet())
             setChip(e.getValue(), k.equals(e.getKey()));
         // v3.79: move focus to the selected tab chip. Tapping a tab (e.g.
@@ -4173,6 +4203,9 @@ public class MainActivity extends Activity {
         setSection(picksLabel, picksRow, !kids);
         setSection(musicLabel, musicRow, !kids);
         setSection(newsLabel, newsRow, !kids);
+        // v4.42: re-filter the Watching chips on profile switch, so the
+        // Kids panel shows only Continue watching Kids right away.
+        try { applyTabVisibility(); } catch (Throwable t) {}
         buildShortcuts();
         loadApps();
     }
