@@ -147,7 +147,7 @@ public class LiveTvActivity extends Activity {
         new Ch("Movies Thriller", "Thriller movies - free", "https://shd-amg-fast.edgenextcdn.net/tx012/playlist.m3u8", 0xFF37474F, 0, "MT", 1),
         new Ch("MBC Bollywood", "Bollywood movies - free", "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-bollywood/546eb40d7dcf9a209255dd2496903764/index.m3u8", 0xFF8E24AA, 0, "MB", 1),
     };
-    // v4.39: Cartoon Movies -- Conan long movies (his ask, a section like
+    // v4.39: Kids Movies -- Conan long movies (his ask, a section like
     // Series). Full-length movies on YouTube, kind 0 = opens in Cobalt.
     // All 8 verified public (oEmbed 200) on 2026-11-17. These are fan
     // uploads, not an official channel -- they can disappear; the list
@@ -156,7 +156,9 @@ public class LiveTvActivity extends Activity {
     // trailers/clips only, not full movies.
     // v4.40: like Choufli Hal -- one title card per series (his ask).
     // Tap "Conan Movies" to see the movies list (Series.conanmovies).
-    static final Ch[] CARTOON_MOVIES = {
+    // v4.41: renamed from CARTOON_MOVIES -- this is the Kids Movies
+    // section now (his ask: kids movies and family movies, separate).
+    static final Ch[] KIDS_MOVIES = {
         new Ch("Conan Movies", "Detective Conan - 8 long movies, Arabic", "https://www.youtube.com/watch?v=7zjQ4kvHUKM", 0xFF7B1FA2, 0, "CM", 5, null, "conanmovies"),
     };
     // v4.39: Kids Live -- free kids live channels for the Kids profile
@@ -202,16 +204,12 @@ public class LiveTvActivity extends Activity {
     // v4.38: one title card per series (his design) -- tap the series,
     // then its seasons (S1, S2, ...), then the episodes. The per-season
     // cards are gone; the seasons live in Series.seasonsFor.
+    // v4.41: Family Series -- Choufli Hal + El Khottab (his ask: kids
+    // series and family series, separate). Pokemon + Conan moved to
+    // KIDS_SERIES below.
     static final Ch[] SERIES = {
         new Ch("Choufli Hal", "Tunisian sitcom - 5 seasons, 2005-2009", "https://www.youtube.com/playlist?list=PLtKHe7Z2QnnH8hjtv4Ehv4x00ZDIhifUr", 0xFFC62828, 0, "CH", 5, null, "choufli"),
         new Ch("El Khottab Al Bab", "Tunisian sitcom - 2 seasons, 1996-1997", "https://www.youtube.com/playlist?list=PLS4sEUpuUmKiTVRfH9eqGGBhiKCwJEOhu", 0xFF00695C, 0, "KB", 5, null, "khottab"),
-        // v4.39: Pokemon -- official Pokemon TV channel, S1 Indigo League
-        // (50 eps) + S2 Orange Islands (40 eps), Arabic audio track.
-        new Ch("Pokemon", "Kids series - 2 seasons, 90 episodes, Arabic audio", "https://www.youtube.com/playlist?list=PLRcHmntfmJ8CnSmj4C284-a1euH518aQa", 0xFFF9A825, 0, "PK", 5, null, "pokemon"),
-        // v4.40: Conan -- partial episode list (10 verified full Arabic
-        // episodes), same title-card flow as Choufli Hal. More episodes
-        // are being hunted; they will be added to Series.EP_CONAN_S1.
-        new Ch("Conan", "Kids series - Arabic dubbed, partial list", "https://www.youtube.com/results?search_query=\u0627\u0644\u0645\u062d\u0642\u0642+\u0643\u0648\u0646\u0627\u0646+\u0645\u062f\u0628\u0644\u062c", 0xFFD32F2F, 0, "CN", 5, null, "conan"),
         // v4.37: free series channels (verified live 2026-11-17) -- live
         // series TV, alongside the season episode lists above.
         new Ch("Bab Al Hara", "Series - Arabic - free", "https://shd-amg-fast.edgenextcdn.net/tx010/playlist.m3u8", 0xFF5D4037, 0, "BH", 1),
@@ -219,10 +217,27 @@ public class LiveTvActivity extends Activity {
         new Ch("MBC Drama USA", "Series - Arabic - free", "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-drama-usa/ea2f5db904aff224b7066e59c7f585a2/index.m3u8", 0xFFAD1457, 0, "MD", 1),
         new Ch("MBC Masr Drama", "Series - Egypt - free", "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-masr-drama/567b703c19ede6598222de81b0e4508b/index.m3u8", 0xFF00897B, 0, "ME", 1),
     };
-    static final String[] CATS = { "All channels", "Tunisia", "News \u2014 free", "Arabic", "Sport", "YouTube live", "World", "Series", "Documentary", "Movies", "Cartoon Movies", "Kids" };
-    // v4.39: index of the Kids category in CATS. In Kids mode the guide
-    // shows only this category (see kidsMode + buildCats).
-    static final int KIDS_CAT = 11;
+    // v4.41: Kids Series -- Pokemon + Conan (his ask: kids series and
+    // family series, separate). Shown in Kids mode and in Family mode.
+    static final Ch[] KIDS_SERIES = {
+        // v4.39: Pokemon -- official Pokemon TV channel, S1 Indigo League
+        // (50 eps) + S2 Orange Islands (40 eps), Arabic audio track.
+        new Ch("Pokemon", "Kids series - 2 seasons, 90 episodes, Arabic audio", "https://www.youtube.com/playlist?list=PLRcHmntfmJ8CnSmj4C284-a1euH518aQa", 0xFFF9A825, 0, "PK", 5, null, "pokemon"),
+        // v4.40: Conan -- 17 verified full Arabic episodes (the max
+        // found on YouTube after a full 1-100 sweep), same title-card
+        // flow as Choufli Hal.
+        new Ch("Conan", "Kids series - Arabic dubbed, 17 episodes", "https://www.youtube.com/results?search_query=\u0627\u0644\u0645\u062d\u0642\u0642+\u0643\u0648\u0646\u0627\u0646+\u0645\u062f\u0628\u0644\u062c", 0xFFD32F2F, 0, "CN", 5, null, "conan"),
+    };
+    static final String[] CATS = { "All channels", "Tunisia", "News \u2014 free", "Arabic", "Sport", "YouTube live", "World", "Series", "Documentary", "Movies", "Kids Movies", "Kids Series", "Kids" };
+    // v4.41: Kids categories in CATS -- Kids Movies (10), Kids Series
+    // (11), Kids live channels (12). In Kids mode the guide shows only
+    // these three (see kidsMode + buildCats + the UP/DOWN keys). Family
+    // mode shows all 13.
+    static final int KIDS_MOVIES_CAT = 10;
+    static final int KIDS_SERIES_CAT = 11;
+    static final int KIDS_CAT = 12;
+    static final int[] KIDS_CATS = { KIDS_MOVIES_CAT, KIDS_SERIES_CAT, KIDS_CAT };
+    static boolean isKidsCat(int i) { return i == KIDS_MOVIES_CAT || i == KIDS_SERIES_CAT || i == KIDS_CAT; }
 
     // v4.39: true when Cemba Home is in the Kids profile. The Live TV
     // guide is kids-only then -- only the Kids category is shown and
@@ -379,10 +394,11 @@ public class LiveTvActivity extends Activity {
         // v3.70: even smaller, like Morph -- text 20 -> 18sp, padding
         // 8 -> 6dp, margin 6 -> 4dp.
         catCol.removeAllViews();
-        // v4.39: Kids mode shows only the Kids category in the sidebar;
-        // the other catViews stay null and refresh() skips them.
+        // v4.41: Kids mode shows only the 3 kids categories in the
+        // sidebar (Kids Movies, Kids Series, Kids); the other catViews
+        // stay null and refresh() skips them.
         for (int i = 0; i < CATS.length; i++) {
-            if (kidsMode() && i != KIDS_CAT) { catViews[i] = null; continue; }
+            if (kidsMode() && !isKidsCat(i)) { catViews[i] = null; continue; }
             TextView t = new TextView(this);
             t.setText(CATS[i]);
             t.setTextSize(18);
@@ -399,7 +415,7 @@ public class LiveTvActivity extends Activity {
     void buildChannels() {
         shown.clear();
         if (cat == 0) {
-            addAll(YT); addAll(FREE); addAll(AR_NEWS); addAll(AR_GEN); addAll(SPORT); addAll(WORLD); addAll(SERIES); addAll(DOC); addAll(MOVIES); addAll(CARTOON_MOVIES);
+            addAll(YT); addAll(FREE); addAll(AR_NEWS); addAll(AR_GEN); addAll(SPORT); addAll(WORLD); addAll(SERIES); addAll(DOC); addAll(MOVIES); addAll(KIDS_MOVIES); addAll(KIDS_SERIES);
             if (iptvConfiguredHere()) {
                 if (iptv.isEmpty()) {
                     shown.add(new Ch(iptvLoading ? "Loading provider channels..." : "No provider channels found", iptvLoading ? "Please wait" : "Test the connection in Settings > My IPTV", null, 0xFF3A4152, 0, "?", 3));
@@ -416,7 +432,8 @@ public class LiveTvActivity extends Activity {
         else if (cat == 7) { addAll(SERIES); }
         else if (cat == 8) { addAll(DOC); }
         else if (cat == 9) { addAll(MOVIES); }
-        else if (cat == 10) { addAll(CARTOON_MOVIES); }
+        else if (cat == 10) { addAll(KIDS_MOVIES); }
+        else if (cat == 11) { addAll(KIDS_SERIES); }
         else { addAll(KIDS_LIVE); }
         // v3.69: search filter -- when a query is set, keep only channels
         // whose name contains it (case-insensitive), across the category.
@@ -564,6 +581,14 @@ public class LiveTvActivity extends Activity {
         super.onBackPressed();
     }
 
+    // v4.41: in Kids mode UP/DOWN cycles only among the 3 kids
+    // categories (Kids Movies -> Kids Series -> Kids -> ...).
+    int nextKidsCat(int dir) {
+        int idx = 0;
+        for (int i = 0; i < KIDS_CATS.length; i++) if (KIDS_CATS[i] == cat) idx = i;
+        return KIDS_CATS[(idx + dir + KIDS_CATS.length) % KIDS_CATS.length];
+    }
+
     @Override public boolean onKeyDown(int code, KeyEvent e) {
         if (code == KeyEvent.KEYCODE_DPAD_LEFT) {
             // v3.68: back to the NORMAL way (his correction) -- Left in the
@@ -584,12 +609,12 @@ public class LiveTvActivity extends Activity {
             return true;
         }
         if (code == KeyEvent.KEYCODE_DPAD_UP) {
-            if (col == 0) { if (kidsMode()) { refresh(); return true; } cat = (cat + CATS.length - 1) % CATS.length; chSel = 0; buildChannels(); }
+            if (col == 0) { if (kidsMode()) { cat = nextKidsCat(-1); chSel = 0; buildChannels(); } else { cat = (cat + CATS.length - 1) % CATS.length; chSel = 0; buildChannels(); } }
             else if (chSel >= GRID_COLS) chSel -= GRID_COLS;
             refresh(); return true;
         }
         if (code == KeyEvent.KEYCODE_DPAD_DOWN) {
-            if (col == 0) { if (kidsMode()) { refresh(); return true; } cat = (cat + 1) % CATS.length; chSel = 0; buildChannels(); }
+            if (col == 0) { if (kidsMode()) { cat = nextKidsCat(1); chSel = 0; buildChannels(); } else { cat = (cat + 1) % CATS.length; chSel = 0; buildChannels(); } }
             else if (chSel + GRID_COLS < shown.size()) chSel += GRID_COLS;
             refresh(); return true;
         }

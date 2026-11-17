@@ -4153,14 +4153,32 @@ public class MainActivity extends Activity {
 
     void applyKidsMode() {
         boolean kids = kidsMode();
+        // v4.41: the Kids profile gets its own tabs (his ask, requested
+        // before): Live TV, Continue watching, Theme. Before, the whole
+        // pills row was hidden in Kids mode, so none of those tabs could
+        // be seen or tapped. Now only the grown-ups pills hide (Home,
+        // Apps, Wi-Fi, Settings); the 3 kids tabs stay. Back from any
+        // panel still returns to the Kids home, so the Home pill is not
+        // needed. Focus lands on Live TV when entering Kids mode.
+        setPillVis(navHome, !kids);
+        setPillVis(navLive, true);
+        setPillVis(navWatch, true);
+        setPillVis(navTheme, true);
+        setPillVis(navApps, !kids);
+        setPillVis(wifiTv, !kids);
+        setPillVis(navSettings, !kids);
         showHome();
+        if (kids && navLive != null) navLive.requestFocus();
         setSection(watchLabel, watchRow, !kids);
         setSection(picksLabel, picksRow, !kids);
         setSection(musicLabel, musicRow, !kids);
         setSection(newsLabel, newsRow, !kids);
-        if (pills != null) pills.setVisibility(kids ? View.GONE : View.VISIBLE);
         buildShortcuts();
         loadApps();
+    }
+
+    void setPillVis(View v, boolean vis) {
+        if (v != null) v.setVisibility(vis ? View.VISIBLE : View.GONE);
     }
 
     void setSection(View label, View row, boolean vis) {
