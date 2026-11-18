@@ -34,11 +34,17 @@ public class PowerService extends AccessibilityService {
     // re-check it on a tick: if the timer is up and a video app is still
     // in front, kick to Cemba Kids home.
     String lastPkg = "";
+    // v4.45: lastPkg alone is not enough -- the keyboard and system UI
+    // also fire window changes and overwrite it, so the tick forgot a
+    // video app was in front and never kicked. Track the last VIDEO app
+    // separately: set only by a video app, cleared only when Cemba
+    // itself comes forward. Anything else leaves it alone.
+    String lastVideoPkg = "";
     android.os.Handler tickHandler = new android.os.Handler(android.os.Looper.getMainLooper());
     Runnable tickR = new Runnable() {
         @Override public void run() {
             try {
-                if (timerUp(PowerService.this) && isLockdownTarget(lastPkg)) kickHome();
+                if (timerUp(PowerService.this) && lastVideoPkg.length() > 0) kickHome();
             } catch (Throwable t) { /* ignore */ }
             tickHandler.postDelayed(this, 20000);
         }
@@ -47,6 +53,7 @@ public class PowerService extends AccessibilityService {
         long now = System.currentTimeMillis();
         if (now - lastLockdownHome < 500) return;
         lastLockdownHome = now;
+        lastVideoPkg = "";
         try {
             Intent i = new Intent(this, MainActivity.class);
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
@@ -102,6 +109,9 @@ public class PowerService extends AccessibilityService {
             String pkg = pkgCs.toString();
             if (pkg.length() == 0) return;
             lastPkg = pkg;
+            // v4.45: track the last video app separately (see lastVideoPkg).
+            if (isLockdownTarget(pkg)) lastVideoPkg = pkg;
+            else if ("com.bacem.launcher".equals(pkg)) lastVideoPkg = "";
             if (!isLockdownTarget(pkg)) return;
             if (!timerUp(this)) return;
             kickHome();

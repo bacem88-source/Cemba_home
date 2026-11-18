@@ -62,6 +62,18 @@ public class KidsTimerReceiver extends BroadcastReceiver {
         try {
             ctx.sendBroadcast(new Intent(PowerService.ACTION_GO_HOME));
         } catch (Exception e) { /* ignore */ }
+        // v4.45: no Cemba Power fallback -- simulate a Home press with the
+        // system HOME intent. Cemba is the default launcher, so this brings
+        // it forward even while a video app is in front, same as the Home
+        // button. No new permission needed. If the system blocks the plain
+        // activity start below, this HOME intent is the one that pulls her
+        // back to the Kids home where onResume shows Time's up.
+        try {
+            Intent home = new Intent(Intent.ACTION_MAIN);
+            home.addCategory(Intent.CATEGORY_HOME);
+            home.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            ctx.startActivity(home);
+        } catch (Exception e) { /* ignore */ }
         try {
             Intent i = new Intent(ctx, MainActivity.class);
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);

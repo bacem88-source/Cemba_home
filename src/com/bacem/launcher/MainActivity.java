@@ -5266,6 +5266,11 @@ public class MainActivity extends Activity {
                     // on v3.96. If it resolves to the official YouTube
                     // app, open it in Cobalt instead.
                     if (!kidsMode() && resolvesToYouTube(wi)) { openYouTubeCard(wi); return; }
+                    // v4.45: Kids mode -- same as the Watching tile: a
+                    // YouTube card opens in the official YouTube app
+                    // with the package set explicitly, so the Bridge
+                    // cannot grab the URL and send it to Cobalt.
+                    if (kidsMode() && (isYouTubeCard(wi) || resolvesToYouTube(wi))) { openYouTubeVideo(wi.intentUri); return; }
                     // v4.20: Tubi cards open in the Tubi app directly --
                     // the implicit deep link showed an "Open with" chooser
                     // on the N5 Max (no Tubi in it) and the movie would
@@ -5741,6 +5746,43 @@ public class MainActivity extends Activity {
         }
     }
 
+    // v4.45: open a YouTube video in the official YouTube app, package
+    // set explicitly so the Bridge cannot grab the URL and send it to
+    // Cobalt. Used by Kids-mode cards (Watching + Top picks): in Kids
+    // mode the raw WatchNext intent is a youtube.com URL and the Bridge
+    // intercepts it even with the Bridge "off", so the card opened
+    // TizenTube. Same shape as openYouTubeSearch, which works.
+    void openYouTubeVideo(String intentUri) {
+        String id = extractVideoId(intentUri);
+        String url = id != null ? "https://www.youtube.com/watch?v=" + id : null;
+        if (url == null) {
+            try {
+                Intent i = Intent.parseUri(intentUri, Intent.URI_INTENT_SCHEME);
+                i.setPackage("com.google.android.youtube.tv");
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(i);
+                return;
+            } catch (Exception e) { /* fall through */ }
+            toast("Couldn't open this video");
+            return;
+        }
+        String[] pkgs = { "com.google.android.youtube.tv", "com.google.android.youtube" };
+        for (String pk : pkgs) {
+            try {
+                Intent i = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url));
+                i.setPackage(pk);
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(i);
+                return;
+            } catch (Exception e) { /* try next */ }
+        }
+        try {
+            Intent i = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(i);
+        } catch (Exception e) { toast("YouTube is not installed on this box"); }
+    }
+
     // v4.39: Kids-aware search -- normal YouTube app in Kids mode,
     // Cobalt in Family mode (kept as is there).
     void openKidsSearch(String query) {
@@ -5901,6 +5943,16 @@ public class MainActivity extends Activity {
                         // YouTube / YouTube Kids app, not Cobalt).
                         if (!kidsMode() && ("com.google.android.youtube.tv".equals(pkg) || isYouTubeCard(wi) || resolvesToYouTube(wi))) {
                             openYouTubeCard(wi);
+                            return;
+                        }
+                        // v4.45: Kids mode -- a YouTube card must open in
+                        // the official YouTube app, not Cobalt. The raw
+                        // WatchNext intent is a youtube.com URL and the
+                        // Bridge grabs it even with the Bridge "off" in
+                        // Kids, so the Watching tab kept opening
+                        // TizenTube. Set the package explicitly instead.
+                        if (kidsMode() && ("com.google.android.youtube.tv".equals(pkg) || isYouTubeCard(wi) || resolvesToYouTube(wi))) {
+                            openYouTubeVideo(wi.intentUri);
                             return;
                         }
                         // v4.20: Tubi cards open in the Tubi app directly
