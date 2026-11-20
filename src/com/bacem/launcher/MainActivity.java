@@ -87,6 +87,10 @@ public class MainActivity extends Activity {
     ScrollView mainSv;
     View watchLabel, picksLabel, liveLabel, musicLabel, kidsLabel, newsLabel;
     LinearLayout catPanel, themePanel, searchPanel, searchResults, watchPanel, settingsPanel, appsPanel;
+    // v4.53: Jannah's calendar panel (Kids only). Built lazily on first open,
+    // like the theme panel -- see fillCalendarPanel().
+    LinearLayout calendarPanel;
+    boolean calendarPanelFilled = false;
     // v3.57: the theme picker's split layout -- the preview column is fixed,
     // the theme cards live in this scrollable column (themeCardsCol) so the
     // preview never scrolls away while browsing the themes.
@@ -110,7 +114,7 @@ public class MainActivity extends Activity {
     // YouTube) would fail, so showTimeUp pulls her home first and onResume
     // shows the dialog once the home is back.
     boolean resumed = false;
-    TextView navHome, navLive, navWatch, navTheme, navWidgets, navApps, navSettings;
+    TextView navHome, navLive, navWatch, navTheme, navWidgets, navApps, navSettings, navCalendar;
     LinearLayout widgetsPanel, widgetsRow, homeCol;
     View nowPlayingBar, homeNowPlayingBar;
     TextView nowPlayingTitleTv, themePreviewTv;
@@ -637,6 +641,9 @@ public class MainActivity extends Activity {
         buildWatchSections();
         settingsPanel = makePanel("Settings");
         appsPanel = makePanel(t("apps"));
+        // v4.53: Jannah's calendar panel (Kids only) -- content is built
+        // lazily on first open by fillCalendarPanel(), so startup stays fast.
+        calendarPanel = makePanel(t("calendar"));
 
         // v3.50: the content rows live in the Watching tab, one section at a
         // time (chips switch it) -- home is one screen, no scrolling down.
@@ -787,11 +794,14 @@ public class MainActivity extends Activity {
         // all 37 theme pictures at startup held ~17 MB of thumbnails in
         // a hidden panel for the whole session.
         navTheme = navPill(t("theme"), new Runnable() { @Override public void run() { if (!themePanelFilled) { themePanelFilled = true; fillThemePanel(); } showPanel(themePanel); } });
+        // v4.53: Calendar pill -- Kids only (see applyKidsMode). Opens
+        // Jannah's week with today highlighted; Family never sees it.
+        navCalendar = navPill(t("calendar"), new Runnable() { @Override public void run() { if (!calendarPanelFilled) { calendarPanelFilled = true; fillCalendarPanel(); } showPanel(calendarPanel); } });
         // v3.82: Widgets pill removed from the header (his ask) -- it now
         // lives under Settings > Box as a plain row, so the header stays
         // short and the widgets are one tap away in Settings.
         navApps = navPill(t("apps"), new Runnable() { @Override public void run() { openAppsPanel(); } });
-        pills.addView(navHome, 0); pills.addView(navLive, 1); pills.addView(navWatch, 2); pills.addView(navTheme, 3); pills.addView(navApps, 4);
+        pills.addView(navHome, 0); pills.addView(navLive, 1); pills.addView(navWatch, 2); pills.addView(navTheme, 3); pills.addView(navCalendar, 4); pills.addView(navApps, 5);
         applyTheme(getSharedPreferences("ui", MODE_PRIVATE).getString("theme", "gold"), false);
         refreshNav();
         // v3.50: the pills stay in the home column (photo layout) -- they are
@@ -915,7 +925,23 @@ public class MainActivity extends Activity {
         // activity restarts (reboot, sleep/wake) while it is on, re-assert the
         // kid-safe home and restart the minute tick, or the home would come
         // back full and unguarded and the limit/bedtime would never fire.
-        try { if (kidsMode()) { applyKidsMode(); startKidsTick(); } } catch (Throwable t) {}
+        // v4.54: re-assert in BOTH profiles, not just Kids. After a restart
+        // in Family mode applyKidsMode() never ran, so the Calendar pill
+        // (added visible by default) stayed visible in Family -- the
+        // calendar must be Kids only. applyKidsMode() already sets every
+        // pill from the current mode, so call it unconditionally; the
+        // minute tick still only starts in Kids mode.
+        // v4.55: also (re)start the Kids timer service on resume in Kids
+        // mode, so it survives an activity restart while she is watching.
+        try {
+            applyKidsMode();
+            if (kidsMode()) {
+                startKidsTick();
+                Intent svc = new Intent(this, KidsTimerService.class);
+                if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(svc);
+                else startService(svc);
+            }
+        } catch (Throwable t) {}
         // v4.31: check GitHub once a day for a newer Cemba Home (see
         // checkForUpdates). Throttled by prefs so it does not hit the
         // network on every resume.
@@ -1226,6 +1252,7 @@ public class MainActivity extends Activity {
         setNavState(navHome, "home".equals(navMode));
         setNavState(navWatch, "watching".equals(navMode));
         setNavState(navTheme, "theme".equals(navMode));
+        setNavState(navCalendar, "calendar".equals(navMode));
         setNavState(navApps, "apps".equals(navMode));
         setNavState(navSettings, "settings".equals(navMode));
         // v4.14: Live TV is a launcher, never active, but its text must
@@ -1274,6 +1301,7 @@ public class MainActivity extends Activity {
         if (mainSv != null) mainSv.setVisibility(View.VISIBLE);
         setPanelVis(catPanel, false);
         setPanelVis(themePanel, false);
+        setPanelVis(calendarPanel, false);
         setPanelVis(widgetsPanel, false);
         setPanelVis(watchPanel, false);
         setPanelVis(settingsPanel, false);
@@ -1305,10 +1333,11 @@ public class MainActivity extends Activity {
         // interfere with a tab switch.
         hidePickBg();
         stopPickAuto();
-        navMode = (p == catPanel) ? "cat" : (p == themePanel) ? "theme" : (p == widgetsPanel) ? "widgets" : (p == watchPanel) ? "watching" : (p == settingsPanel) ? "settings" : (p == appsPanel) ? "apps" : "search";
+        navMode = (p == catPanel) ? "cat" : (p == themePanel) ? "theme" : (p == calendarPanel) ? "calendar" : (p == widgetsPanel) ? "widgets" : (p == watchPanel) ? "watching" : (p == settingsPanel) ? "settings" : (p == appsPanel) ? "apps" : "search";
         if (mainSv != null) mainSv.setVisibility(View.GONE);
         setPanelVis(catPanel, p == catPanel);
         setPanelVis(themePanel, p == themePanel);
+        setPanelVis(calendarPanel, p == calendarPanel);
         setPanelVis(widgetsPanel, p == widgetsPanel);
         setPanelVis(watchPanel, p == watchPanel);
         setPanelVis(settingsPanel, p == settingsPanel);
@@ -2943,6 +2972,549 @@ public class MainActivity extends Activity {
         if (pickAutoR != null) handler.removeCallbacks(pickAutoR);
     }
 
+    // v4.53: Jannah's calendar (Kids only). One card per day, Monday first,
+    // today highlighted with the theme accent. Weekly stickers repeat every
+    // week (Logic.calendarActivity); 2027 Ontario holidays are listed below
+    // so a holiday day is tagged (Logic.holiday2027). No network, all baked in.
+    // v4.56: editable Kids calendar, port of tablet v1.13. One anchor
+    // date; Week shows the anchor's week (Monday first), Month shows
+    // the anchor's month. < > moves a week / a month; Today resets to
+    // today. PD days + L'Harmonie holidays get a purple "Pas d'ecole"
+    // badge (activity still shows underneath). Tapping a day asks for
+    // the grown-up PIN, then opens the edit sheet: change the activity
+    // text, add an event with a picture (9 to pick from), Save or
+    // Delete. Events live in SharedPreferences under evt_yyyy-MM-dd.
+    int calMode = 0; // 0 = Week, 1 = Month
+    int calAnchorYear = 0, calAnchorMonth = 0, calAnchorDay = 0;
+    String editSheetPic = "";
+
+    void calInitAnchor() {
+        if (calAnchorYear == 0) {
+            java.util.Calendar c = java.util.Calendar.getInstance();
+            calAnchorYear = c.get(java.util.Calendar.YEAR);
+            calAnchorMonth = c.get(java.util.Calendar.MONTH) + 1;
+            calAnchorDay = c.get(java.util.Calendar.DAY_OF_MONTH);
+        }
+    }
+
+    void calResetToToday() {
+        java.util.Calendar c = java.util.Calendar.getInstance();
+        calAnchorYear = c.get(java.util.Calendar.YEAR);
+        calAnchorMonth = c.get(java.util.Calendar.MONTH) + 1;
+        calAnchorDay = c.get(java.util.Calendar.DAY_OF_MONTH);
+        refreshCalendar();
+    }
+
+    void calMove(int delta) {
+        calInitAnchor();
+        if (calMode == 0) {
+            int[] d = Logic.addDays(calAnchorYear, calAnchorMonth, calAnchorDay, delta * 7);
+            calAnchorYear = d[0]; calAnchorMonth = d[1]; calAnchorDay = d[2];
+        } else {
+            int[] m = Logic.addMonths(calAnchorYear, calAnchorMonth, delta);
+            calAnchorYear = m[0]; calAnchorMonth = m[1];
+            int max = Logic.daysInMonth(calAnchorYear, calAnchorMonth);
+            if (calAnchorDay > max) calAnchorDay = max;
+        }
+        refreshCalendar();
+    }
+
+    void refreshCalendar() {
+        if (calendarPanel == null) return;
+        calendarPanelFilled = false;
+        calendarPanel.removeAllViews();
+        fillCalendarPanel();
+        calendarPanelFilled = true;
+    }
+
+    int calPicRes(String key) {
+        if (key == null) return 0;
+        if (key.equals("swim")) return R.drawable.cal_swim;
+        if (key.equals("teacher")) return R.drawable.cal_teacher;
+        if (key.equals("art")) return R.drawable.cal_art;
+        if (key.equals("pizza")) return R.drawable.cal_pizza;
+        if (key.equals("family")) return R.drawable.cal_family;
+        if (key.equals("popsicle")) return R.drawable.cal_popsicle;
+        if (key.equals("holiday")) return R.drawable.cal_holiday;
+        if (key.equals("cake")) return R.drawable.cal_cake;
+        if (key.equals("school")) return R.drawable.cal_school;
+        return 0;
+    }
+
+    String calPicLabel(String key) {
+        if (key == null) return "";
+        if (key.equals("swim")) return "Piscine";
+        if (key.equals("teacher")) return "Madame Jack";
+        if (key.equals("art")) return "Art";
+        if (key.equals("pizza")) return "Pizza";
+        if (key.equals("family")) return "Famille";
+        if (key.equals("popsicle")) return "Popsicle";
+        if (key.equals("holiday")) return "F\u00eate";
+        if (key.equals("cake")) return "G\u00e2teau";
+        if (key.equals("school")) return "\u00c9cole";
+        return "";
+    }
+
+    // v4.53: picture for each calendar day, by activity.
+    int calendarPicRes(int dow) {
+        if (dow == 2) return R.drawable.cal_swim;
+        if (dow == 3 || dow == 4) return R.drawable.cal_teacher;
+        if (dow == 5) return R.drawable.cal_art;
+        if (dow == 6) return R.drawable.cal_pizza;
+        if (dow == 7) return R.drawable.cal_family;
+        return R.drawable.cal_popsicle; // Sunday
+    }
+
+    void fillCalendarPanel() {
+        if (calendarPanel == null) return;
+        // v4.53: pink, not black -- Jannah's calendar is a bright pink
+        // panel with white day cards (today is bright pink), dark text.
+        // The panel and its ScrollView both default to near-black, so
+        // paint both pink; the title (child 0, set by makePanel) goes
+        // dark plum so it reads on the light background.
+        try {
+            calendarPanel.setBackgroundColor(0xFFFFD1E3);
+            android.view.View parent = (android.view.View) calendarPanel.getParent();
+            if (parent != null) parent.setBackgroundColor(0xFFFFD1E3);
+            android.view.View titleV = calendarPanel.getChildAt(0);
+            if (titleV instanceof TextView) ((TextView) titleV).setTextColor(0xFF5A143C);
+        } catch (Exception e) { /* ignore */ }
+        calInitAnchor();
+        java.util.Calendar now = java.util.Calendar.getInstance();
+        final int todayY = now.get(java.util.Calendar.YEAR);
+        final int todayM = now.get(java.util.Calendar.MONTH) + 1;
+        final int todayD = now.get(java.util.Calendar.DAY_OF_MONTH);
+        final int todayDow = now.get(java.util.Calendar.DAY_OF_WEEK);
+        // Nav row: <  label  >  Today  Semaine|Mois.
+        LinearLayout nav = new LinearLayout(this);
+        nav.setOrientation(LinearLayout.HORIZONTAL);
+        nav.setPadding(0, hdp(6), 0, hdp(12));
+        calendarPanel.addView(nav);
+        TextView prev = calNavBtn("<");
+        prev.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { calMove(-1); } });
+        nav.addView(prev);
+        TextView navLabel = new TextView(this);
+        if (calMode == 0) {
+            int[] mon = Logic.weekMonday(calAnchorYear, calAnchorMonth, calAnchorDay);
+            int[] sun = Logic.addDays(mon[0], mon[1], mon[2], 6);
+            navLabel.setText("Semaine  " + Logic.weekRangeText(mon[0], mon[1], mon[2], sun[0], sun[1], sun[2]));
+        } else {
+            navLabel.setText(Logic.monthNameFr(calAnchorMonth) + " " + calAnchorYear);
+        }
+        navLabel.setTextColor(0xFF5A143C);
+        navLabel.setTextSize(hsp(20));
+        navLabel.setTypeface(navLabel.getTypeface(), android.graphics.Typeface.BOLD);
+        navLabel.setPadding(hdp(16), 0, hdp(16), 0);
+        navLabel.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        nav.addView(navLabel);
+        TextView next = calNavBtn(">");
+        next.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { calMove(1); } });
+        nav.addView(next);
+        TextView todayBtn = calNavBtn("Aujourd'hui");
+        todayBtn.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { calResetToToday(); } });
+        LinearLayout.LayoutParams tbLp = new LinearLayout.LayoutParams(-2, -2);
+        tbLp.leftMargin = hdp(16);
+        todayBtn.setLayoutParams(tbLp);
+        nav.addView(todayBtn);
+        TextView modeBtn = calNavBtn(calMode == 0 ? "Mois" : "Semaine");
+        modeBtn.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { calMode = 1 - calMode; refreshCalendar(); } });
+        LinearLayout.LayoutParams mbLp = new LinearLayout.LayoutParams(-2, -2);
+        mbLp.leftMargin = hdp(12);
+        modeBtn.setLayoutParams(mbLp);
+        nav.addView(modeBtn);
+        // Hint: tap a day to edit (grown-ups only).
+        TextView hint = new TextView(this);
+        hint.setText("Touchez un jour pour le modifier \u2014 adultes seulement (PIN requis)");
+        hint.setTextColor(0xFF783C64);
+        hint.setTextSize(hsp(14));
+        hint.setPadding(0, 0, 0, hdp(10));
+        calendarPanel.addView(hint);
+        if (calMode == 0) fillCalendarWeek(todayY, todayM, todayD);
+        else fillCalendarMonth(todayY, todayM, todayD);
+        TextView hol = new TextView(this);
+        hol.setText("2027 : 1 Jan New Year's Day  \u00b7  15 Feb Family Day  \u00b7  26 Mar Good Friday  \u00b7  24 May Victoria Day  \u00b7  1 Jul Canada Day  \u00b7  6 Sep Labour Day  \u00b7  11 Oct Thanksgiving  \u00b7  25 Dec Christmas Day  \u00b7  26 Dec Boxing Day");
+        hol.setTextColor(0xFF783C64);
+        hol.setTextSize(hsp(13));
+        hol.setPadding(0, hdp(10), 0, 0);
+        calendarPanel.addView(hol);
+    }
+
+    TextView calNavBtn(String label) {
+        TextView b = new TextView(this);
+        b.setText(label);
+        b.setTextColor(Color.WHITE);
+        b.setTextSize(hsp(18));
+        b.setTypeface(b.getTypeface(), android.graphics.Typeface.BOLD);
+        b.setGravity(android.view.Gravity.CENTER);
+        b.setPadding(hdp(18), hdp(8), hdp(18), hdp(8));
+        GradientDrawable g = new GradientDrawable();
+        g.setColor(0xFFC2185B);
+        g.setCornerRadius(hdp(20));
+        b.setBackground(g);
+        b.setFocusable(true);
+        return b;
+    }
+
+    /** Week view: the anchor's week, Monday first, 7 cards in 2 rows. */
+    void fillCalendarWeek(final int todayY, final int todayM, final int todayD) {
+        int[] mon = Logic.weekMonday(calAnchorYear, calAnchorMonth, calAnchorDay);
+        int y = mon[0], m = mon[1], d = mon[2];
+        for (int r = 0; r < 2; r++) {
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setPadding(0, 0, 0, hdp(12));
+            calendarPanel.addView(row);
+            int count = (r == 0) ? 4 : 3;
+            for (int i = 0; i < count; i++) {
+                int[] cur = Logic.addDays(y, m, d, r * 4 + i);
+                final int cy = cur[0], cm = cur[1], cd = cur[2];
+                final int dow = Logic.dayOfWeek(cy, cm, cd);
+                final boolean isToday = (cy == todayY && cm == todayM && cd == todayD);
+                final String dateKey = Logic.eventDateKey(cy, cm, cd);
+                android.content.SharedPreferences p = getSharedPreferences("ui", MODE_PRIVATE);
+                final String savedEvent = p.getString(Logic.eventTextKey(dateKey), "");
+                final String savedPic = p.getString(Logic.eventPicKey(dateKey), "");
+                final String savedAct = p.getString(Logic.eventActivityKey(dateKey), "");
+                final String actText = savedAct.length() > 0 ? savedAct : Logic.calendarActivity(dow);
+                final String badge = Logic.noSchoolBadge(cy, cm, cd);
+                String picKey = savedEvent.length() > 0 && Logic.isPictureKey(savedPic) ? savedPic
+                        : Logic.calendarPictureForDate(cy, cm, cd);
+                final int picRes = calPicRes(picKey);
+                LinearLayout card = new LinearLayout(this);
+                card.setOrientation(LinearLayout.VERTICAL);
+                card.setPadding(0, 0, 0, hdp(12));
+                GradientDrawable g = new GradientDrawable();
+                g.setColor(isToday ? 0xFFFF78B4 : Color.WHITE);
+                g.setCornerRadius(hdp(14));
+                g.setStroke(hdp(2), isToday ? 0xFFFF5090 : 0xFFCCCCCC);
+                card.setBackground(g);
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(250), 1f);
+                lp.rightMargin = hdp(12);
+                card.setLayoutParams(lp);
+                card.setFocusable(true);
+                card.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { promptEditDay(cy, cm, cd); } });
+                if (picRes != 0) {
+                    android.widget.ImageView pic = new android.widget.ImageView(this);
+                    pic.setImageResource(picRes);
+                    pic.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
+                    LinearLayout.LayoutParams pp = new LinearLayout.LayoutParams(-1, dp(110));
+                    pic.setLayoutParams(pp);
+                    try {
+                        android.graphics.drawable.GradientDrawable pg = new android.graphics.drawable.GradientDrawable();
+                        pg.setCornerRadii(new float[]{hdp(14), hdp(14), hdp(14), hdp(14), 0, 0, 0, 0});
+                        pic.setBackground(pg);
+                        pic.setClipToOutline(true);
+                    } catch (Exception e) { /* ignore */ }
+                    card.addView(pic);
+                }
+                TextView dn = new TextView(this);
+                dn.setText(Logic.calendarDayName(dow) + " " + cd + (isToday ? "  \u25CF" : ""));
+                dn.setTextColor(0xFF3C1428);
+                dn.setTextSize(hsp(19));
+                dn.setTypeface(dn.getTypeface(), android.graphics.Typeface.BOLD);
+                dn.setPadding(hdp(14), hdp(10), hdp(14), 0);
+                card.addView(dn);
+                if (badge != null) {
+                    TextView b = new TextView(this);
+                    b.setText(badge);
+                    b.setTextColor(Color.WHITE);
+                    b.setTextSize(hsp(13));
+                    b.setTypeface(b.getTypeface(), android.graphics.Typeface.BOLD);
+                    b.setPadding(hdp(10), hdp(4), hdp(10), hdp(4));
+                    GradientDrawable bg = new GradientDrawable();
+                    bg.setColor(0xFF783CB4);
+                    bg.setCornerRadius(hdp(10));
+                    b.setBackground(bg);
+                    LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(-2, -2);
+                    blp.leftMargin = hdp(14);
+                    blp.topMargin = hdp(6);
+                    b.setLayoutParams(blp);
+                    card.addView(b);
+                }
+                TextView act = new TextView(this);
+                act.setText(actText);
+                act.setTextColor(0xFF5A3C50);
+                act.setTextSize(hsp(15));
+                act.setPadding(hdp(14), hdp(8), hdp(14), 0);
+                card.addView(act);
+                if (savedEvent.length() > 0) {
+                    TextView ev = new TextView(this);
+                    ev.setText(savedEvent);
+                    ev.setTextColor(0xFFC2185B);
+                    ev.setTextSize(hsp(15));
+                    ev.setTypeface(ev.getTypeface(), android.graphics.Typeface.BOLD);
+                    ev.setPadding(hdp(14), hdp(4), hdp(14), 0);
+                    card.addView(ev);
+                }
+                row.addView(card);
+            }
+        }
+    }
+
+    /** Month view: Mon..Sun header + a grid of day cells. */
+    void fillCalendarMonth(final int todayY, final int todayM, final int todayD) {
+        String[] heads = {"Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"};
+        LinearLayout hrow = new LinearLayout(this);
+        hrow.setOrientation(LinearLayout.HORIZONTAL);
+        hrow.setPadding(0, 0, 0, hdp(6));
+        calendarPanel.addView(hrow);
+        for (int i = 0; i < 7; i++) {
+            TextView h = new TextView(this);
+            h.setText(heads[i]);
+            h.setTextColor(0xFF5A143C);
+            h.setTextSize(hsp(16));
+            h.setTypeface(h.getTypeface(), android.graphics.Typeface.BOLD);
+            h.setGravity(android.view.Gravity.CENTER);
+            LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(0, -2, 1f);
+            h.setLayoutParams(hp);
+            hrow.addView(h);
+        }
+        int offset = Logic.firstDayMondayOffset(calAnchorYear, calAnchorMonth);
+        int days = Logic.daysInMonth(calAnchorYear, calAnchorMonth);
+        int rows = Logic.monthGridRows(calAnchorYear, calAnchorMonth);
+        android.content.SharedPreferences p = getSharedPreferences("ui", MODE_PRIVATE);
+        for (int r = 0; r < rows; r++) {
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setPadding(0, 0, 0, hdp(8));
+            calendarPanel.addView(row);
+            for (int c = 0; c < 7; c++) {
+                int cell = r * 7 + c;
+                int dayNum = cell - offset + 1;
+                LinearLayout cellV = new LinearLayout(this);
+                cellV.setOrientation(LinearLayout.VERTICAL);
+                cellV.setPadding(hdp(10), hdp(8), hdp(10), hdp(8));
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(110), 1f);
+                lp.rightMargin = hdp(8);
+                cellV.setLayoutParams(lp);
+                if (dayNum < 1 || dayNum > days) {
+                    cellV.setBackgroundColor(Color.TRANSPARENT);
+                    row.addView(cellV);
+                    continue;
+                }
+                final int cy = calAnchorYear, cm = calAnchorMonth, cd = dayNum;
+                final int dow = Logic.dayOfWeek(cy, cm, cd);
+                final boolean isToday = (cy == todayY && cm == todayM && cd == todayD);
+                final String dateKey = Logic.eventDateKey(cy, cm, cd);
+                final String savedEvent = p.getString(Logic.eventTextKey(dateKey), "");
+                final String savedAct = p.getString(Logic.eventActivityKey(dateKey), "");
+                final String badge = Logic.noSchoolBadge(cy, cm, cd);
+                GradientDrawable g = new GradientDrawable();
+                g.setColor(isToday ? 0xFFFF78B4 : Color.WHITE);
+                g.setCornerRadius(hdp(12));
+                g.setStroke(hdp(2), isToday ? 0xFFFF5090 : 0xFFCCCCCC);
+                cellV.setBackground(g);
+                cellV.setFocusable(true);
+                cellV.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { promptEditDay(cy, cm, cd); } });
+                TextView num = new TextView(this);
+                num.setText(String.valueOf(cd));
+                num.setTextColor(0xFF3C1428);
+                num.setTextSize(hsp(18));
+                num.setTypeface(num.getTypeface(), android.graphics.Typeface.BOLD);
+                cellV.addView(num);
+                TextView act = new TextView(this);
+                act.setText(savedAct.length() > 0 ? savedAct : Logic.calendarShortActivity(dow));
+                act.setTextColor(0xFF5A3C50);
+                act.setTextSize(hsp(13));
+                cellV.addView(act);
+                if (savedEvent.length() > 0) {
+                    TextView ev = new TextView(this);
+                    ev.setText(savedEvent);
+                    ev.setTextColor(0xFFC2185B);
+                    ev.setTextSize(hsp(13));
+                    ev.setTypeface(ev.getTypeface(), android.graphics.Typeface.BOLD);
+                    cellV.addView(ev);
+                }
+                if (badge != null) {
+                    TextView b = new TextView(this);
+                    b.setText("Pas d'\u00e9cole");
+                    b.setTextColor(Color.WHITE);
+                    b.setTextSize(hsp(11));
+                    b.setTypeface(b.getTypeface(), android.graphics.Typeface.BOLD);
+                    b.setPadding(hdp(8), hdp(2), hdp(8), hdp(2));
+                    GradientDrawable bg = new GradientDrawable();
+                    bg.setColor(0xFF783CB4);
+                    bg.setCornerRadius(hdp(8));
+                    b.setBackground(bg);
+                    LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(-2, -2);
+                    blp.topMargin = hdp(4);
+                    b.setLayoutParams(blp);
+                    cellV.addView(b);
+                }
+                row.addView(cellV);
+            }
+        }
+    }
+
+    /** v4.56: a tap on a day first asks for the grown-up PIN. */
+    void promptEditDay(final int year, final int month, final int day) {
+        if (!pinSet()) {
+            toast("D\u00e9finissez d'abord un PIN (R\u00e9glages > PIN)");
+            return;
+        }
+        pinPrompt(new Runnable() { @Override public void run() { showEditDay(year, month, day); } });
+    }
+
+    /** v4.56: the edit sheet for one date. */
+    void showEditDay(final int year, final int month, final int day) {
+        final String dateKey = Logic.eventDateKey(year, month, day);
+        final int dow = Logic.dayOfWeek(year, month, day);
+        final String defaultActivity = Logic.calendarActivity(dow);
+        android.content.SharedPreferences p = getSharedPreferences("ui", MODE_PRIVATE);
+        final String savedEvent = p.getString(Logic.eventTextKey(dateKey), "");
+        final String savedPic = p.getString(Logic.eventPicKey(dateKey), "");
+        final String savedAct = p.getString(Logic.eventActivityKey(dateKey), "");
+        editSheetPic = Logic.isPictureKey(savedPic) ? savedPic : Logic.calendarPictureForDate(year, month, day);
+        LinearLayout col = new LinearLayout(this);
+        col.setOrientation(LinearLayout.VERTICAL);
+        col.setPadding(dp(24), dp(8), dp(24), dp(8));
+        TextView dateTv = new TextView(this);
+        dateTv.setText(Logic.calendarDayName(dow) + " " + day + "/" + month + "/" + year);
+        dateTv.setTextSize(24);
+        dateTv.setTypeface(dateTv.getTypeface(), android.graphics.Typeface.BOLD);
+        dateTv.setTextColor(0xFF3C1428);
+        col.addView(dateTv);
+        final String badge = Logic.noSchoolBadge(year, month, day);
+        if (badge != null) {
+            TextView b = new TextView(this);
+            b.setText(badge);
+            b.setTextSize(16);
+            b.setTypeface(b.getTypeface(), android.graphics.Typeface.BOLD);
+            b.setTextColor(Color.WHITE);
+            b.setPadding(dp(12), dp(6), dp(12), dp(6));
+            GradientDrawable bg = new GradientDrawable();
+            bg.setColor(0xFF783CB4);
+            bg.setCornerRadius(dp(10));
+            b.setBackground(bg);
+            LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(-2, -2);
+            blp.topMargin = dp(10);
+            b.setLayoutParams(blp);
+            col.addView(b);
+        }
+        TextView actLabel = new TextView(this);
+        actLabel.setText("Activit\u00e9");
+        actLabel.setTextSize(18);
+        actLabel.setTypeface(actLabel.getTypeface(), android.graphics.Typeface.BOLD);
+        actLabel.setTextColor(0xFF3C1428);
+        actLabel.setPadding(0, dp(14), 0, 0);
+        col.addView(actLabel);
+        final EditText actIn = new EditText(this);
+        actIn.setText(savedAct.length() > 0 ? savedAct : defaultActivity);
+        actIn.setTextSize(18);
+        actIn.setTextColor(0xFF3C1428);
+        col.addView(actIn);
+        TextView evLabel = new TextView(this);
+        evLabel.setText("\u00c9v\u00e9nement (facultatif)");
+        evLabel.setTextSize(18);
+        evLabel.setTypeface(evLabel.getTypeface(), android.graphics.Typeface.BOLD);
+        evLabel.setTextColor(0xFF3C1428);
+        evLabel.setPadding(0, dp(14), 0, 0);
+        col.addView(evLabel);
+        final EditText evIn = new EditText(this);
+        evIn.setText(savedEvent);
+        evIn.setHint("Ex : Anniversaire de Jannah");
+        evIn.setTextSize(18);
+        evIn.setTextColor(0xFF3C1428);
+        col.addView(evIn);
+        TextView picLabel = new TextView(this);
+        picLabel.setText("Image");
+        picLabel.setTextSize(18);
+        picLabel.setTypeface(picLabel.getTypeface(), android.graphics.Typeface.BOLD);
+        picLabel.setTextColor(0xFF3C1428);
+        picLabel.setPadding(0, dp(14), 0, 0);
+        col.addView(picLabel);
+        final LinearLayout pickerBox = new LinearLayout(this);
+        pickerBox.setOrientation(LinearLayout.VERTICAL);
+        buildCalPicker(pickerBox);
+        col.addView(pickerBox);
+        new AlertDialog.Builder(this)
+                .setTitle("Modifier le jour")
+                .setView(col)
+                .setPositiveButton("Enregistrer", new DialogInterface.OnClickListener() {
+                    @Override public void onClick(DialogInterface d, int w) {
+                        String act = actIn.getText().toString().trim();
+                        String ev = evIn.getText().toString().trim();
+                        android.content.SharedPreferences.Editor e = getSharedPreferences("ui", MODE_PRIVATE).edit();
+                        if (act.length() == 0 || act.equals(defaultActivity)) {
+                            e.remove(Logic.eventActivityKey(dateKey));
+                        } else {
+                            e.putString(Logic.eventActivityKey(dateKey), act);
+                        }
+                        if (ev.length() == 0) {
+                            e.remove(Logic.eventTextKey(dateKey));
+                            e.remove(Logic.eventPicKey(dateKey));
+                        } else {
+                            e.putString(Logic.eventTextKey(dateKey), ev);
+                            e.putString(Logic.eventPicKey(dateKey), editSheetPic);
+                        }
+                        e.apply();
+                        refreshCalendar();
+                        toast("Enregistr\u00e9");
+                    }
+                })
+                .setNeutralButton("Supprimer", new DialogInterface.OnClickListener() {
+                    @Override public void onClick(DialogInterface d, int w) {
+                        getSharedPreferences("ui", MODE_PRIVATE).edit()
+                                .remove(Logic.eventTextKey(dateKey))
+                                .remove(Logic.eventPicKey(dateKey))
+                                .remove(Logic.eventActivityKey(dateKey))
+                                .apply();
+                        refreshCalendar();
+                        toast("Supprim\u00e9 \u2014 jour normal");
+                    }
+                })
+                .setNegativeButton("Annuler", null)
+                .show();
+    }
+
+    /** v4.56: fill the picker box with the 9 picture choices (2 rows). */
+    void buildCalPicker(final LinearLayout box) {
+        box.removeAllViews();
+        LinearLayout row = null;
+        for (int i = 0; i < Logic.PICTURE_KEYS.length; i++) {
+            if (i % 5 == 0) {
+                row = new LinearLayout(this);
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                row.setGravity(android.view.Gravity.CENTER);
+                box.addView(row);
+            }
+            final String key = Logic.PICTURE_KEYS[i];
+            LinearLayout cell = new LinearLayout(this);
+            cell.setOrientation(LinearLayout.VERTICAL);
+            cell.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
+            GradientDrawable bg = new GradientDrawable();
+            bg.setColor(key.equals(editSheetPic) ? 0xFFFFC98A : Color.WHITE);
+            bg.setCornerRadius(hdp(10));
+            bg.setStroke(hdp(2), key.equals(editSheetPic) ? 0xFFFF9800 : 0xFFCCCCCC);
+            cell.setBackground(bg);
+            cell.setPadding(dp(8), dp(8), dp(8), dp(8));
+            LinearLayout.LayoutParams cellLp = new LinearLayout.LayoutParams(dp(110), LinearLayout.LayoutParams.WRAP_CONTENT);
+            cellLp.leftMargin = dp(6);
+            cellLp.rightMargin = dp(6);
+            cellLp.topMargin = dp(8);
+            cell.setLayoutParams(cellLp);
+            cell.setFocusable(true);
+            android.widget.ImageView iv = new android.widget.ImageView(this);
+            int res = calPicRes(key);
+            if (res != 0) iv.setImageResource(res);
+            iv.setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);
+            cell.addView(iv, new LinearLayout.LayoutParams(dp(80), dp(80)));
+            TextView lb = new TextView(this);
+            lb.setText(calPicLabel(key));
+            lb.setTextSize(14);
+            lb.setTextColor(0xFF3C1428);
+            lb.setGravity(android.view.Gravity.CENTER);
+            cell.addView(lb);
+            cell.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) {
+                    editSheetPic = key;
+                    buildCalPicker(box);
+                }
+            });
+            if (row != null) row.addView(cell);
+        }
+    }
+
     void showWatchPanel() { showPanel(watchPanel); showWatchSection(watchSection()); }
 
     // v4.13: one look for a tab chip -- active and/or focused fills with
@@ -4168,6 +4740,20 @@ public class MainActivity extends Activity {
         }
         if (on) { startKidsTick(); scheduleKidsAlarm(); }
         else handler.removeCallbacks(kidsTickR);
+        // v4.55: Kids timer foreground service -- the AlarmManager path
+        // works on the N5 Max but never fires on the Xiaomi box (MIUI /
+        // Android TV 14 defers the alarm, and Android TV has no "Battery
+        // unrestricted" setting). The service stays alive while she
+        // watches YouTube and brings the home forward when time is up.
+        try {
+            Intent svc = new Intent(this, KidsTimerService.class);
+            if (on) {
+                if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(svc);
+                else startService(svc);
+            } else {
+                stopService(svc);
+            }
+        } catch (Exception e) { /* ignore */ }
         applyKidsMode();
         applyProfileAvatar();
     }
@@ -4194,6 +4780,8 @@ public class MainActivity extends Activity {
         setPillVis(navLive, true);
         setPillVis(navWatch, true);
         setPillVis(navTheme, true);
+        // v4.53: Calendar is Kids only -- Jannah's week. Family never sees it.
+        setPillVis(navCalendar, kids);
         setPillVis(navApps, !kids);
         setPillVis(wifiTv, !kids);
         setPillVis(navSettings, !kids);

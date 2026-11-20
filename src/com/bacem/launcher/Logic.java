@@ -153,6 +153,262 @@ public class Logic {
         long used = usedStoredMin + kidsElapsedMin(sessionStartMillis, nowMillis);
         return used >= limitMin;
     }
+
+    // v4.53: Jannah's weekly calendar (Kids only, TV first, tablet next).
+    // Her own week, as she and Bacem stated it 2026-11-18 -- NOT the school
+    // calendar (none was found in email or Drive). dow is
+    // java.util.Calendar.DAY_OF_WEEK: 1 = Sunday, 2 = Monday ... 7 = Saturday.
+    public static String calendarDayName(int dow) {
+        if (dow == 1) return "Dimanche";
+        if (dow == 2) return "Lundi";
+        if (dow == 3) return "Mardi";
+        if (dow == 4) return "Mercredi";
+        if (dow == 5) return "Jeudi";
+        if (dow == 6) return "Vendredi";
+        if (dow == 7) return "Samedi";
+        return "";
+    }
+
+    public static String calendarActivity(int dow) {
+        if (dow == 2) return "Piscine \u00e0 17h";
+        if (dow == 3) return "Madame Robin Jack";
+        if (dow == 4) return "Madame Robin Jack";
+        if (dow == 5) return "Art";
+        if (dow == 6) return "Pizza !";
+        if (dow == 7) return "Famille + Popsicle";
+        if (dow == 1) return "Famille + Petite s\u0153ur + Popsicle";
+        return "";
+    }
+
+    // v4.53: Ontario 2027 statutory holidays, tagged in the calendar.
+    // month is 1-12, day is 1-31. Returns the holiday name, or null.
+    // Civic Holiday (Aug 2) and Easter Monday are NOT statutory in Ontario.
+    public static String holiday2027(int month, int day) {
+        if (month == 1 && day == 1) return "New Year's Day";
+        if (month == 2 && day == 15) return "Family Day";
+        if (month == 3 && day == 26) return "Good Friday";
+        if (month == 5 && day == 24) return "Victoria Day";
+        if (month == 7 && day == 1) return "Canada Day";
+        if (month == 9 && day == 6) return "Labour Day";
+        if (month == 10 && day == 11) return "Thanksgiving Day";
+        if (month == 12 && day == 25) return "Christmas Day";
+        if (month == 12 && day == 26) return "Boxing Day";
+        return null;
+    }
+
+    public static boolean isHoliday2027(int month, int day) {
+        return holiday2027(month, day) != null;
+    }
+
+    // v4.56: L'Harmonie 2026-2027 school dates, verified 2026-11-20
+    // from the official Viamonde board calendar (same for every
+    // Viamonde school). PD days (no school): Sep 2, Sep 3, Oct 26,
+    // Nov 27, Feb 5, Jun 4, Jun 30. Board holidays (no school):
+    // Sep 4, Dec 21-25 + Dec 28-31, Jan 1, Mar 15-19 (March break).
+    // Stat holidays: Sep 7 Labour Day, Oct 12 Thanksgiving, Feb 15
+    // Family Day, Mar 26 Good Friday, Mar 29 Easter Monday (not a
+    // statutory holiday in Ontario, but a no-school day in the
+    // Viamonde calendar), May 24 Victoria Day. A PD day shows a
+    // purple "Pas d'\u00e9cole \u00b7 Journ\u00e9e p\u00e9dagogique" badge;
+    // a holiday shows "Pas d'\u00e9cole \u00b7 <name>". The regular
+    // weekly activity still shows underneath the badge.
+
+    /** True on one of the 7 L'Harmonie PD days, 2026-2027. */
+    public static boolean isPdDay(int year, int month, int day) {
+        if (year == 2026) {
+            if (month == 9 && (day == 2 || day == 3)) return true;
+            if (month == 10 && day == 26) return true;
+            if (month == 11 && day == 27) return true;
+            return false;
+        }
+        if (year == 2027) {
+            if (month == 2 && day == 5) return true;
+            if (month == 6 && (day == 4 || day == 30)) return true;
+            return false;
+        }
+        return false;
+    }
+
+    /** Holiday / board-holiday name for a date in the 2026-2027
+        school year, or null when it is a normal school day.
+        PD days are NOT covered here - see isPdDay / noSchoolName. */
+    public static String schoolHolidayName(int year, int month, int day) {
+        if (year == 2026) {
+            if (month == 9 && day == 7) return "Labour Day";
+            if (month == 10 && day == 12) return "Thanksgiving Day";
+            if (month == 9 && day == 4) return "Board holiday";
+            if (month == 12 && day == 25) return "Christmas Day";
+            if (month == 12 && day >= 21 && day <= 24) return "Christmas break";
+            if (month == 12 && day >= 28 && day <= 31) return "Christmas break";
+            return null;
+        }
+        if (year == 2027) {
+            if (month == 3 && day == 29) return "Easter Monday";
+            if (month == 3 && day >= 15 && day <= 19) return "March break";
+            return holiday2027(month, day);
+        }
+        return null;
+    }
+
+    /** No-school reason for a date: "PD" on a PD day, the holiday /
+        board-holiday name on a holiday, null when school is on. */
+    public static String noSchoolName(int year, int month, int day) {
+        if (isPdDay(year, month, day)) return "PD";
+        return schoolHolidayName(year, month, day);
+    }
+
+    /** Badge text for a no-school day, or null when school is on
+        (French - the TV calendar is in French). */
+    public static String noSchoolBadge(int year, int month, int day) {
+        String name = noSchoolName(year, month, day);
+        if (name == null) return null;
+        if ("PD".equals(name)) return "Pas d'\u00e9cole \u00b7 Journ\u00e9e p\u00e9dagogique";
+        return "Pas d'\u00e9cole \u00b7 " + name;
+    }
+
+    // v4.56: calendar navigation + custom events (port of tablet v1.13).
+    // One anchor date; Week shows the anchor's week (Monday first),
+    // Month shows the anchor's month. < > moves a week / a month;
+    // Today resets to today. Events are one per day, stored in
+    // SharedPreferences under keys built from yyyy-MM-dd.
+
+    public static int daysInMonth(int year, int month) {
+        if (month == 2) return ((year % 4 == 0 && year % 100 != 0) || year % 400 == 0) ? 29 : 28;
+        if (month == 4 || month == 6 || month == 9 || month == 11) return 30;
+        if (month >= 1 && month <= 12) return 31;
+        return 0;
+    }
+
+    /** Day-of-week (Calendar: 1 = Sunday) for a date. */
+    public static int dayOfWeek(int year, int month, int day) {
+        java.util.Calendar c = java.util.Calendar.getInstance();
+        c.set(year, month - 1, day);
+        return c.get(java.util.Calendar.DAY_OF_WEEK);
+    }
+
+    /** Blank cells before the 1st, Monday first: Monday = 0, Sunday = 6. */
+    public static int firstDayMondayOffset(int year, int month) {
+        int dow = dayOfWeek(year, month, 1);
+        return (dow + 5) % 7;
+    }
+
+    /** Rows the month grid needs: blank cells + days, in weeks of 7. */
+    public static int monthGridRows(int year, int month) {
+        int cells = firstDayMondayOffset(year, month) + daysInMonth(year, month);
+        return (cells + 6) / 7;
+    }
+
+    /** The date delta days away: month and year crossings included. */
+    public static int[] addDays(int year, int month, int day, int delta) {
+        java.util.Calendar c = java.util.Calendar.getInstance();
+        c.set(year, month - 1, day);
+        c.add(java.util.Calendar.DAY_OF_YEAR, delta);
+        return new int[]{ c.get(java.util.Calendar.YEAR),
+                c.get(java.util.Calendar.MONTH) + 1,
+                c.get(java.util.Calendar.DAY_OF_MONTH) };
+    }
+
+    /** The Monday of the week a date falls in. */
+    public static int[] weekMonday(int year, int month, int day) {
+        int dow = dayOfWeek(year, month, day);
+        return addDays(year, month, day, -((dow + 5) % 7));
+    }
+
+    /** The month delta months away: Nov + 1 = Dec, Dec + 1 = Jan next year. */
+    public static int[] addMonths(int year, int month, int delta) {
+        int total = (year * 12 + (month - 1)) + delta;
+        return new int[]{ total / 12, total % 12 + 1 };
+    }
+
+    static String pad2(int v) {
+        return v < 10 ? "0" + v : String.valueOf(v);
+    }
+
+    /** Week range for the nav label: "23/11 \u2013 29/11/2026". */
+    public static String weekRangeText(int y1, int m1, int d1, int y2, int m2, int d2) {
+        return pad2(d1) + "/" + pad2(m1) + " \u2013 " + pad2(d2) + "/" + pad2(m2) + "/" + y2;
+    }
+
+    /** Month name in French for the nav label. */
+    public static String monthNameFr(int month) {
+        if (month == 1) return "Janvier";
+        if (month == 2) return "F\u00e9vrier";
+        if (month == 3) return "Mars";
+        if (month == 4) return "Avril";
+        if (month == 5) return "Mai";
+        if (month == 6) return "Juin";
+        if (month == 7) return "Juillet";
+        if (month == 8) return "Ao\u00fbt";
+        if (month == 9) return "Septembre";
+        if (month == 10) return "Octobre";
+        if (month == 11) return "Novembre";
+        if (month == 12) return "D\u00e9cembre";
+        return "";
+    }
+
+    /** Date key for storage: "2026-11-27". */
+    public static String eventDateKey(int year, int month, int day) {
+        return year + "-" + pad2(month) + "-" + pad2(day);
+    }
+
+    /** SharedPreferences key for a day's event text. */
+    public static String eventTextKey(String dateKey) {
+        return "evt_" + dateKey;
+    }
+
+    /** SharedPreferences key for a day's event picture key. */
+    public static String eventPicKey(String dateKey) {
+        return "evtpic_" + dateKey;
+    }
+
+    /** SharedPreferences key for a day's activity override. */
+    public static String eventActivityKey(String dateKey) {
+        return "evtact_" + dateKey;
+    }
+
+    /** All picture keys the picker offers, in display order.
+        The TV's 6 (swim, teacher, art, pizza, family, popsicle)
+        plus holiday, cake and school. */
+    public static final String[] PICTURE_KEYS = {
+        "swim", "teacher", "art", "pizza", "family", "popsicle", "holiday", "cake", "school"
+    };
+
+    /** True only for one of the 9 picture keys. */
+    public static boolean isPictureKey(String key) {
+        if (key == null) return false;
+        for (int i = 0; i < PICTURE_KEYS.length; i++) if (PICTURE_KEYS[i].equals(key)) return true;
+        return false;
+    }
+
+    /** Picture key for a day-of-week: swim, teacher, art, pizza,
+        family or popsicle (Sunday). */
+    public static String calendarPicture(int dow) {
+        if (dow == 2) return "swim";
+        if (dow == 3 || dow == 4) return "teacher";
+        if (dow == 5) return "art";
+        if (dow == 6) return "pizza";
+        if (dow == 7) return "family";
+        if (dow == 1) return "popsicle";
+        return "";
+    }
+
+    /** Picture key for a date: "holiday" on a no-school holiday,
+        else the picture for that date's day-of-week. PD days keep
+        their activity picture - the purple badge says "No school". */
+    public static String calendarPictureForDate(int year, int month, int day) {
+        if (schoolHolidayName(year, month, day) != null) return "holiday";
+        return calendarPicture(dayOfWeek(year, month, day));
+    }
+
+    /** Short activity word for a small month cell. */
+    public static String calendarShortActivity(int dow) {
+        if (dow == 2) return "Piscine";
+        if (dow == 3 || dow == 4) return "Jack";
+        if (dow == 5) return "Art";
+        if (dow == 6) return "Pizza";
+        if (dow == 7 || dow == 1) return "Famille";
+        return "";
+    }
     public static boolean isMusic(String genre, String pkg) {
         String g = genre == null ? "" : genre.toLowerCase(Locale.US);
         if (g.contains("music")) return true;
@@ -435,6 +691,11 @@ public class Logic {
             if ("fr".equals(l)) return "Th\u00e8me";
             if ("ar".equals(l)) return "\u0627\u0644\u0633\u0645\u0629";
             return "Theme";
+        }
+        if ("calendar".equals(key)) {
+            if ("fr".equals(l)) return "Calendrier";
+            if ("ar".equals(l)) return "\u0627\u0644\u062a\u0642\u0648\u064a\u0645";
+            return "Calendar";
         }
         if ("widgets".equals(key)) {
             if ("fr".equals(l)) return "Widgets";
