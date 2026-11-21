@@ -231,7 +231,9 @@ public class Logic {
 
     /** Holiday / board-holiday name for a date in the 2026-2027
         school year, or null when it is a normal school day.
-        PD days are NOT covered here - see isPdDay / noSchoolName. */
+        PD days are NOT covered here - see isPdDay / noSchoolName.
+        Summer break (July and August) is a no-school holiday in
+        every year - Ontario schools are always out then. */
     public static String schoolHolidayName(int year, int month, int day) {
         if (year == 2026) {
             if (month == 9 && day == 7) return "Labour Day";
@@ -240,13 +242,16 @@ public class Logic {
             if (month == 12 && day == 25) return "Christmas Day";
             if (month == 12 && day >= 21 && day <= 24) return "Christmas break";
             if (month == 12 && day >= 28 && day <= 31) return "Christmas break";
-            return null;
-        }
-        if (year == 2027) {
+        } else if (year == 2027) {
             if (month == 3 && day == 29) return "Easter Monday";
             if (month == 3 && day >= 15 && day <= 19) return "March break";
-            return holiday2027(month, day);
+            String h = holiday2027(month, day);
+            if (h != null) return h;
         }
+        // v4.59: summer break (July and August, every year) - checked
+        // after the specific holidays, so Canada Day (Jul 1) still shows
+        // as Canada Day and not just as summer break.
+        if (month == 7 || month == 8) return "Summer break";
         return null;
     }
 
@@ -264,6 +269,19 @@ public class Logic {
         if (name == null) return null;
         if ("PD".equals(name)) return "Pas d'\u00e9cole \u00b7 Journ\u00e9e p\u00e9dagogique";
         return "Pas d'\u00e9cole \u00b7 " + name;
+    }
+
+    /** Jannah's birthday: December 29, every year. The calendar shows
+        it as a built-in event ("Anniversaire de Jannah", cake picture)
+        and the launcher pops a birthday message that day. A custom event
+        the grown-ups save on Dec 29 still wins over it. */
+    public static boolean isJannahBirthday(int month, int day) {
+        return month == 12 && day == 29;
+    }
+
+    /** The birthday event text shown on Dec 29 (French). */
+    public static String birthdayText() {
+        return "Anniversaire de Jannah";
     }
 
     // v4.56: calendar navigation + custom events (port of tablet v1.13).
@@ -370,10 +388,10 @@ public class Logic {
         The TV's 6 (swim, teacher, art, pizza, family, popsicle)
         plus holiday, cake and school. */
     public static final String[] PICTURE_KEYS = {
-        "swim", "teacher", "art", "pizza", "family", "popsicle", "holiday", "cake", "school"
+        "swim", "teacher", "art", "pizza", "family", "popsicle", "holiday", "cake", "school", "spring", "autumn", "summer"
     };
 
-    /** True only for one of the 9 picture keys. */
+    /** True only for one of the 12 picture keys. */
     public static boolean isPictureKey(String key) {
         if (key == null) return false;
         for (int i = 0; i < PICTURE_KEYS.length; i++) if (PICTURE_KEYS[i].equals(key)) return true;
@@ -392,11 +410,23 @@ public class Logic {
         return "";
     }
 
-    /** Picture key for a date: "holiday" on a no-school holiday,
-        else the picture for that date's day-of-week. PD days keep
-        their activity picture - the purple badge says "No school". */
+    /** Picture key for a date: the picture matches the holiday type --
+        Christmas tree only for Christmas-season holidays (Christmas Day,
+        Christmas break, Boxing Day, New Year's Day), spring flowers for
+        March break / Good Friday / Easter Monday, autumn leaves for
+        Thanksgiving, a sunny beach for Summer break, family for Family
+        Day and the other days off (Labour Day, Victoria Day, Canada Day,
+        Board holiday). PD days keep their activity picture - the purple
+        badge says "No school". */
     public static String calendarPictureForDate(int year, int month, int day) {
-        if (schoolHolidayName(year, month, day) != null) return "holiday";
+        String h = schoolHolidayName(year, month, day);
+        if (h != null) {
+            if (h.contains("Christmas") || h.contains("Boxing") || h.contains("New Year")) return "holiday";
+            if (h.contains("March break") || h.contains("Good Friday") || h.contains("Easter")) return "spring";
+            if (h.contains("Thanksgiving")) return "autumn";
+            if (h.contains("Summer break")) return "summer";
+            return "family";
+        }
         return calendarPicture(dayOfWeek(year, month, day));
     }
 

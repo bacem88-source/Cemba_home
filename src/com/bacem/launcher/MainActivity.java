@@ -25,6 +25,7 @@ import android.text.InputType;
 import android.text.TextWatcher;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
@@ -946,6 +947,9 @@ public class MainActivity extends Activity {
         // checkForUpdates). Throttled by prefs so it does not hit the
         // network on every resume.
         try { maybeCheckForUpdates(); } catch (Throwable t) {}
+        // v4.57: Jannah's birthday (Dec 29) -- pop the birthday message
+        // once that day, the first time the home comes up.
+        try { maybeShowBirthday(); } catch (Throwable t) {}
     }
 
     @Override protected void onPause() {
@@ -2987,6 +2991,11 @@ public class MainActivity extends Activity {
     int calMode = 0; // 0 = Week, 1 = Month
     int calAnchorYear = 0, calAnchorMonth = 0, calAnchorDay = 0;
     String editSheetPic = "";
+    // v4.59: how many days the edit applies to (1 = just the tapped
+    // day, N = this day and the next N-1 days). Set by the stepper in
+    // the edit sheet; reset to 1 each time the sheet opens.
+    int editSheetDays = 1;
+    View calFirstDay = null; // first day card/cell of the current view, for focus restore after refresh
 
     void calInitAnchor() {
         if (calAnchorYear == 0) {
@@ -3025,6 +3034,37 @@ public class MainActivity extends Activity {
         calendarPanel.removeAllViews();
         fillCalendarPanel();
         calendarPanelFilled = true;
+        // v4.57: removeAllViews destroyed the focused view, so focus is gone
+        // and the remote would stop working. Put it on the first day so the
+        // user can keep moving with the arrows (only when the panel is open;
+        // refresh is only ever called from inside the calendar, never from
+        // the Calendar pill tap, so this cannot leak a tap into a day edit).
+        if (calendarPanel.getVisibility() == View.VISIBLE && calFirstDay != null) calFirstDay.requestFocus();
+    }
+
+    // v4.57: on Jannah's birthday (Dec 29) pop a birthday message once that
+    // day, the first time the home comes up -- in either profile, so whoever
+    // opens the box sees it. The flag is per-day, so it shows again next
+    // year but never twice in one day.
+    void maybeShowBirthday() {
+        java.util.Calendar c = java.util.Calendar.getInstance();
+        int y = c.get(java.util.Calendar.YEAR);
+        int m = c.get(java.util.Calendar.MONTH) + 1;
+        int d = c.get(java.util.Calendar.DAY_OF_MONTH);
+        if (!Logic.isJannahBirthday(m, d)) return;
+        String key = "birthday_shown_" + Logic.eventDateKey(y, m, d);
+        android.content.SharedPreferences p = getSharedPreferences("ui", MODE_PRIVATE);
+        if (p.getBoolean(key, false)) return;
+        p.edit().putBoolean(key, true).apply();
+        try {
+            new AlertDialog.Builder(this)
+                    .setTitle("Joyeux anniversaire !")
+                    .setMessage("Joyeux anniversaire, Jannah !")
+                    .setIcon(R.drawable.cal_cake)
+                    .setPositiveButton("Merci", null)
+                    .setCancelable(true)
+                    .show();
+        } catch (Exception e) { /* ignore */ }
     }
 
     int calPicRes(String key) {
@@ -3038,6 +3078,9 @@ public class MainActivity extends Activity {
         if (key.equals("holiday")) return R.drawable.cal_holiday;
         if (key.equals("cake")) return R.drawable.cal_cake;
         if (key.equals("school")) return R.drawable.cal_school;
+        if (key.equals("spring")) return R.drawable.cal_spring;
+        if (key.equals("autumn")) return R.drawable.cal_autumn;
+        if (key.equals("summer")) return R.drawable.cal_summer;
         return 0;
     }
 
@@ -3052,6 +3095,9 @@ public class MainActivity extends Activity {
         if (key.equals("holiday")) return "F\u00eate";
         if (key.equals("cake")) return "G\u00e2teau";
         if (key.equals("school")) return "\u00c9cole";
+        if (key.equals("spring")) return "Printemps";
+        if (key.equals("autumn")) return "Automne";
+        if (key.equals("summer")) return "\u00c9t\u00e9";
         return "";
     }
 
@@ -3067,6 +3113,7 @@ public class MainActivity extends Activity {
 
     void fillCalendarPanel() {
         if (calendarPanel == null) return;
+        calFirstDay = null;
         // v4.53: pink, not black -- Jannah's calendar is a bright pink
         // panel with white day cards (today is bright pink), dark text.
         // The panel and its ScrollView both default to near-black, so
@@ -3122,6 +3169,24 @@ public class MainActivity extends Activity {
         mbLp.leftMargin = hdp(12);
         modeBtn.setLayoutParams(mbLp);
         nav.addView(modeBtn);
+        // v4.57: the panel itself takes focus when it opens (showPanel), and
+        // a focused container's children are NOT reachable by D-pad -- they
+        // sit inside the panel's rect, so Android's focus search never picks
+        // them (same trap the Apps panel hit, v4.34). Catch Down on the panel
+        // and send it to the first nav button ("<"); from there Right walks
+        // the nav row and Down drops into the day grid. Up stays put.
+        final TextView firstNav = prev;
+        calendarPanel.setOnKeyListener(new View.OnKeyListener() {
+            @Override public boolean onKey(View v, int keyCode, KeyEvent e) {
+                if (e.getAction() != KeyEvent.ACTION_DOWN) return false;
+                if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                    firstNav.requestFocus();
+                    return true;
+                }
+                if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return true;
+                return false;
+            }
+        });
         // Hint: tap a day to edit (grown-ups only).
         TextView hint = new TextView(this);
         hint.setText("Touchez un jour pour le modifier \u2014 adultes seulement (PIN requis)");
@@ -3139,6 +3204,27 @@ public class MainActivity extends Activity {
         calendarPanel.addView(hol);
     }
 
+    // v4.57: focus visuals for the calendar nav buttons -- focused is
+    // brighter pink with a white ring, so the remote position is visible.
+    GradientDrawable calNavBg(boolean focused) {
+        GradientDrawable g = new GradientDrawable();
+        g.setColor(focused ? 0xFFFF5090 : 0xFFC2185B);
+        g.setCornerRadius(hdp(20));
+        if (focused) g.setStroke(hdp(3), Color.WHITE);
+        return g;
+    }
+
+    // v4.57: focus visuals for a day card/cell -- focused gets a thick
+    // orange ring (and a light orange tint unless it is today, which stays
+    // bright pink), so the remote position is visible.
+    GradientDrawable calDayBg(boolean isToday, boolean focused, int radius) {
+        GradientDrawable g = new GradientDrawable();
+        g.setColor(isToday ? 0xFFFF78B4 : (focused ? 0xFFFFF3E0 : Color.WHITE));
+        g.setCornerRadius(radius);
+        g.setStroke(focused ? hdp(4) : hdp(2), focused ? 0xFFFF6D00 : (isToday ? 0xFFFF5090 : 0xFFCCCCCC));
+        return g;
+    }
+
     TextView calNavBtn(String label) {
         TextView b = new TextView(this);
         b.setText(label);
@@ -3147,11 +3233,13 @@ public class MainActivity extends Activity {
         b.setTypeface(b.getTypeface(), android.graphics.Typeface.BOLD);
         b.setGravity(android.view.Gravity.CENTER);
         b.setPadding(hdp(18), hdp(8), hdp(18), hdp(8));
-        GradientDrawable g = new GradientDrawable();
-        g.setColor(0xFFC2185B);
-        g.setCornerRadius(hdp(20));
-        b.setBackground(g);
+        b.setBackground(calNavBg(false));
         b.setFocusable(true);
+        b.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override public void onFocusChange(View v, boolean hasFocus) {
+                v.setBackground(calNavBg(hasFocus));
+            }
+        });
         return b;
     }
 
@@ -3177,22 +3265,28 @@ public class MainActivity extends Activity {
                 final String savedAct = p.getString(Logic.eventActivityKey(dateKey), "");
                 final String actText = savedAct.length() > 0 ? savedAct : Logic.calendarActivity(dow);
                 final String badge = Logic.noSchoolBadge(cy, cm, cd);
+                // v4.57: the day's event -- a saved event wins; otherwise
+                // Jannah's birthday (Dec 29) shows as a built-in event.
+                final String displayEvent = savedEvent.length() > 0 ? savedEvent
+                        : (Logic.isJannahBirthday(cm, cd) ? Logic.birthdayText() : "");
                 String picKey = savedEvent.length() > 0 && Logic.isPictureKey(savedPic) ? savedPic
-                        : Logic.calendarPictureForDate(cy, cm, cd);
+                        : (Logic.isJannahBirthday(cm, cd) ? "cake" : Logic.calendarPictureForDate(cy, cm, cd));
                 final int picRes = calPicRes(picKey);
                 LinearLayout card = new LinearLayout(this);
                 card.setOrientation(LinearLayout.VERTICAL);
                 card.setPadding(0, 0, 0, hdp(12));
-                GradientDrawable g = new GradientDrawable();
-                g.setColor(isToday ? 0xFFFF78B4 : Color.WHITE);
-                g.setCornerRadius(hdp(14));
-                g.setStroke(hdp(2), isToday ? 0xFFFF5090 : 0xFFCCCCCC);
-                card.setBackground(g);
+                card.setBackground(calDayBg(isToday, false, hdp(14)));
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(250), 1f);
                 lp.rightMargin = hdp(12);
                 card.setLayoutParams(lp);
                 card.setFocusable(true);
+                card.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                    @Override public void onFocusChange(View v, boolean hasFocus) {
+                        v.setBackground(calDayBg(isToday, hasFocus, hdp(14)));
+                    }
+                });
                 card.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { promptEditDay(cy, cm, cd); } });
+                if (calFirstDay == null) calFirstDay = card;
                 if (picRes != 0) {
                     android.widget.ImageView pic = new android.widget.ImageView(this);
                     pic.setImageResource(picRes);
@@ -3237,9 +3331,9 @@ public class MainActivity extends Activity {
                 act.setTextSize(hsp(15));
                 act.setPadding(hdp(14), hdp(8), hdp(14), 0);
                 card.addView(act);
-                if (savedEvent.length() > 0) {
+                if (displayEvent.length() > 0) {
                     TextView ev = new TextView(this);
-                    ev.setText(savedEvent);
+                    ev.setText(displayEvent);
                     ev.setTextColor(0xFFC2185B);
                     ev.setTextSize(hsp(15));
                     ev.setTypeface(ev.getTypeface(), android.graphics.Typeface.BOLD);
@@ -3284,7 +3378,7 @@ public class MainActivity extends Activity {
                 LinearLayout cellV = new LinearLayout(this);
                 cellV.setOrientation(LinearLayout.VERTICAL);
                 cellV.setPadding(hdp(10), hdp(8), hdp(10), hdp(8));
-                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(110), 1f);
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(170), 1f);
                 lp.rightMargin = hdp(8);
                 cellV.setLayoutParams(lp);
                 if (dayNum < 1 || dayNum > days) {
@@ -3297,15 +3391,35 @@ public class MainActivity extends Activity {
                 final boolean isToday = (cy == todayY && cm == todayM && cd == todayD);
                 final String dateKey = Logic.eventDateKey(cy, cm, cd);
                 final String savedEvent = p.getString(Logic.eventTextKey(dateKey), "");
+                final String savedPic = p.getString(Logic.eventPicKey(dateKey), "");
                 final String savedAct = p.getString(Logic.eventActivityKey(dateKey), "");
                 final String badge = Logic.noSchoolBadge(cy, cm, cd);
-                GradientDrawable g = new GradientDrawable();
-                g.setColor(isToday ? 0xFFFF78B4 : Color.WHITE);
-                g.setCornerRadius(hdp(12));
-                g.setStroke(hdp(2), isToday ? 0xFFFF5090 : 0xFFCCCCCC);
-                cellV.setBackground(g);
+                cellV.setBackground(calDayBg(isToday, false, hdp(12)));
                 cellV.setFocusable(true);
+                cellV.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                    @Override public void onFocusChange(View v, boolean hasFocus) {
+                        v.setBackground(calDayBg(isToday, hasFocus, hdp(12)));
+                    }
+                });
                 cellV.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { promptEditDay(cy, cm, cd); } });
+                if (calFirstDay == null) calFirstDay = cellV;
+                // v4.57: the month cells now show the day's picture, like the
+                // week cards -- custom event picture if one was picked, else
+                // Jannah's birthday cake on Dec 29, else the agreed activity
+                // picture for that weekday / holiday.
+                final String displayEvent = savedEvent.length() > 0 ? savedEvent
+                        : (Logic.isJannahBirthday(cm, cd) ? Logic.birthdayText() : "");
+                String picKey = savedEvent.length() > 0 && Logic.isPictureKey(savedPic) ? savedPic
+                        : (Logic.isJannahBirthday(cm, cd) ? "cake" : Logic.calendarPictureForDate(cy, cm, cd));
+                final int picRes = calPicRes(picKey);
+                if (picRes != 0) {
+                    android.widget.ImageView pic = new android.widget.ImageView(this);
+                    pic.setImageResource(picRes);
+                    pic.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
+                    LinearLayout.LayoutParams pp = new LinearLayout.LayoutParams(-1, dp(48));
+                    pic.setLayoutParams(pp);
+                    cellV.addView(pic);
+                }
                 TextView num = new TextView(this);
                 num.setText(String.valueOf(cd));
                 num.setTextColor(0xFF3C1428);
@@ -3317,9 +3431,9 @@ public class MainActivity extends Activity {
                 act.setTextColor(0xFF5A3C50);
                 act.setTextSize(hsp(13));
                 cellV.addView(act);
-                if (savedEvent.length() > 0) {
+                if (displayEvent.length() > 0) {
                     TextView ev = new TextView(this);
-                    ev.setText(savedEvent);
+                    ev.setText(displayEvent);
                     ev.setTextColor(0xFFC2185B);
                     ev.setTextSize(hsp(13));
                     ev.setTypeface(ev.getTypeface(), android.graphics.Typeface.BOLD);
@@ -3427,6 +3541,47 @@ public class MainActivity extends Activity {
         pickerBox.setOrientation(LinearLayout.VERTICAL);
         buildCalPicker(pickerBox);
         col.addView(pickerBox);
+        // v4.59: apply the event + picture to one day or to the upcoming
+        // days (a range). The stepper changes editSheetDays (1-60); the
+        // activity override still applies only to the tapped day, so the
+        // daily routine is not overwritten for the whole range. Saving
+        // with an empty event clears the event + picture for the range.
+        editSheetDays = 1;
+        TextView daysLabel = new TextView(this);
+        daysLabel.setText("Appliquer \u00e0");
+        daysLabel.setTextSize(18);
+        daysLabel.setTypeface(daysLabel.getTypeface(), android.graphics.Typeface.BOLD);
+        daysLabel.setTextColor(0xFF3C1428);
+        daysLabel.setPadding(0, dp(14), 0, 0);
+        col.addView(daysLabel);
+        LinearLayout daysRow = new LinearLayout(this);
+        daysRow.setOrientation(LinearLayout.HORIZONTAL);
+        daysRow.setPadding(0, dp(6), 0, 0);
+        final Button daysMinus = new Button(this);
+        daysMinus.setText("\u2212");
+        daysMinus.setTextSize(20);
+        final TextView daysTv = new TextView(this);
+        daysTv.setText("1 jour");
+        daysTv.setTextSize(18);
+        daysTv.setTextColor(0xFF3C1428);
+        daysTv.setPadding(dp(16), dp(8), dp(16), dp(8));
+        final Button daysPlus = new Button(this);
+        daysPlus.setText("+");
+        daysPlus.setTextSize(20);
+        daysMinus.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                if (editSheetDays > 1) { editSheetDays--; daysTv.setText(editSheetDays == 1 ? "1 jour" : (editSheetDays + " jours")); }
+            }
+        });
+        daysPlus.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                if (editSheetDays < 60) { editSheetDays++; daysTv.setText(editSheetDays + " jours"); }
+            }
+        });
+        daysRow.addView(daysMinus);
+        daysRow.addView(daysTv);
+        daysRow.addView(daysPlus);
+        col.addView(daysRow);
         new AlertDialog.Builder(this)
                 .setTitle("Modifier le jour")
                 .setView(col)
@@ -3435,21 +3590,34 @@ public class MainActivity extends Activity {
                         String act = actIn.getText().toString().trim();
                         String ev = evIn.getText().toString().trim();
                         android.content.SharedPreferences.Editor e = getSharedPreferences("ui", MODE_PRIVATE).edit();
-                        if (act.length() == 0 || act.equals(defaultActivity)) {
-                            e.remove(Logic.eventActivityKey(dateKey));
-                        } else {
-                            e.putString(Logic.eventActivityKey(dateKey), act);
-                        }
-                        if (ev.length() == 0) {
-                            e.remove(Logic.eventTextKey(dateKey));
-                            e.remove(Logic.eventPicKey(dateKey));
-                        } else {
-                            e.putString(Logic.eventTextKey(dateKey), ev);
-                            e.putString(Logic.eventPicKey(dateKey), editSheetPic);
+                        // v4.59: apply to one day or to the upcoming days.
+                        // The event + picture go on every day of the range;
+                        // the activity override stays on the tapped day only
+                        // (the daily routine must not be overwritten for a
+                        // whole range). An empty event clears the event +
+                        // picture for the whole range.
+                        int days = editSheetDays < 1 ? 1 : editSheetDays;
+                        for (int i = 0; i < days; i++) {
+                            int[] dt = Logic.addDays(year, month, day, i);
+                            String key = Logic.eventDateKey(dt[0], dt[1], dt[2]);
+                            if (i == 0) {
+                                if (act.length() == 0 || act.equals(defaultActivity)) {
+                                    e.remove(Logic.eventActivityKey(key));
+                                } else {
+                                    e.putString(Logic.eventActivityKey(key), act);
+                                }
+                            }
+                            if (ev.length() == 0) {
+                                e.remove(Logic.eventTextKey(key));
+                                e.remove(Logic.eventPicKey(key));
+                            } else {
+                                e.putString(Logic.eventTextKey(key), ev);
+                                e.putString(Logic.eventPicKey(key), editSheetPic);
+                            }
                         }
                         e.apply();
                         refreshCalendar();
-                        toast("Enregistr\u00e9");
+                        toast(days == 1 ? "Enregistr\u00e9" : ("Enregistr\u00e9 pour " + days + " jours"));
                     }
                 })
                 .setNeutralButton("Supprimer", new DialogInterface.OnClickListener() {
@@ -4745,6 +4913,13 @@ public class MainActivity extends Activity {
         // Android TV 14 defers the alarm, and Android TV has no "Battery
         // unrestricted" setting). The service stays alive while she
         // watches YouTube and brings the home forward when time is up.
+        // v4.57: the service FAILED on the Xiaomi at first (no "Kids time"
+        // notification -- it never started). Root cause: the manifest
+        // declared foregroundServiceType="dataSync" but was missing the
+        // FOREGROUND_SERVICE_DATA_SYNC permission, which Android 14
+        // requires for that type. Fixed by adding that permission. The
+        // setAlarmClock alarm (scheduleKidsAlarm) is still armed as a
+        // backup. Full approach history lives in KidsTimerService.java.
         try {
             Intent svc = new Intent(this, KidsTimerService.class);
             if (on) {
@@ -4820,7 +4995,13 @@ public class MainActivity extends Activity {
     /** v3.87: schedule the exact alarm that fires when the daily limit is
         reached OR bedtime arrives, even if MainActivity is dead in the
         background. The alarm brings the launcher forward; onResume ->
-        kidsCheck shows Time's up. Whichever comes first wins. */
+        kidsCheck shows Time's up. Whichever comes first wins.
+        v4.54: the alarm uses setAlarmClock (see KidsTimerReceiver) --
+        WORKS on the N5 Max, does NOT fire on the Xiaomi (MIUI / Android
+        TV 14). KEPT as a backup: the foreground service (KidsTimerService,
+        v4.55, fixed v4.57) is the primary timer on the Xiaomi, and this
+        alarm is still armed alongside it so either path can pull the home
+        forward. Full approach history lives in KidsTimerService.java. */
     void scheduleKidsAlarm() {
         try {
             if (!kidsMode()) { KidsTimerReceiver.cancel(this); return; }

@@ -350,6 +350,38 @@ public class LogicTest {
         eq("Event activity key", Logic.eventActivityKey("2026-11-27"), "evtact_2026-11-27");
         eq("Holiday date uses holiday picture", Logic.calendarPictureForDate(2026, 12, 25), "holiday");
         eq("PD day keeps Friday pizza picture", Logic.calendarPictureForDate(2026, 11, 27), "pizza");
+        // v4.58: the holiday picture matches the holiday type -- no
+        // Christmas tree on a March holiday.
+        eq("Christmas break keeps the tree", Logic.calendarPictureForDate(2026, 12, 22), "holiday");
+        eq("Boxing Day keeps the tree", Logic.calendarPictureForDate(2027, 12, 26), "holiday");
+        eq("New Year's Day keeps the tree", Logic.calendarPictureForDate(2027, 1, 1), "holiday");
+        eq("March break gets spring flowers", Logic.calendarPictureForDate(2027, 3, 17), "spring");
+        eq("Good Friday gets spring flowers", Logic.calendarPictureForDate(2027, 3, 26), "spring");
+        eq("Easter Monday gets spring flowers", Logic.calendarPictureForDate(2027, 3, 29), "spring");
+        eq("Thanksgiving gets autumn leaves", Logic.calendarPictureForDate(2026, 10, 12), "autumn");
+        eq("Thanksgiving 2027 gets autumn leaves", Logic.calendarPictureForDate(2027, 10, 11), "autumn");
+        eq("Family Day gets the family picture", Logic.calendarPictureForDate(2027, 2, 15), "family");
+        eq("Labour Day gets the family picture", Logic.calendarPictureForDate(2026, 9, 7), "family");
+        eq("Victoria Day gets the family picture", Logic.calendarPictureForDate(2027, 5, 24), "family");
+        eq("Canada Day gets the family picture", Logic.calendarPictureForDate(2027, 7, 1), "family");
+        eq("Board holiday gets the family picture", Logic.calendarPictureForDate(2026, 9, 4), "family");
+        eq("Spring is a valid picture key", Logic.isPictureKey("spring"), true);
+        eq("Autumn is a valid picture key", Logic.isPictureKey("autumn"), true);
+        // v4.59: summer break (July and August, every year) with a beach picture.
+        eq("July is Summer break", Logic.schoolHolidayName(2027, 7, 15), "Summer break");
+        eq("August is Summer break", Logic.schoolHolidayName(2027, 8, 20), "Summer break");
+        eq("July 2028 is Summer break too", Logic.schoolHolidayName(2028, 7, 4), "Summer break");
+        eq("June is NOT Summer break", Logic.schoolHolidayName(2027, 6, 15), null);
+        eq("September is NOT Summer break", Logic.schoolHolidayName(2027, 9, 15), null);
+        eq("Summer break gets the beach picture", Logic.calendarPictureForDate(2027, 7, 15), "summer");
+        eq("Summer is a valid picture key", Logic.isPictureKey("summer"), true);
+        eq("Range crosses month end", java.util.Arrays.toString(Logic.addDays(2027, 7, 30, 3)), "[2027, 8, 2]");
+        // v4.57: Jannah's birthday is Dec 29, every year.
+        eq("Dec 29 is Jannah's birthday", Logic.isJannahBirthday(12, 29), true);
+        eq("Dec 28 is NOT her birthday", Logic.isJannahBirthday(12, 28), false);
+        eq("Jan 29 is NOT her birthday", Logic.isJannahBirthday(1, 29), false);
+        eq("Birthday text is French", Logic.birthdayText(), "Anniversaire de Jannah");
+        eq("Dec 29 2026 is Christmas break (no school)", Logic.schoolHolidayName(2026, 12, 29), "Christmas break");
         eq("Monday short activity is Piscine", Logic.calendarShortActivity(2), "Piscine");
         eq("November in French", Logic.monthNameFr(11), "Novembre");
         eq("Gold has no hero subline", Logic.heroSubline("gold"), "");

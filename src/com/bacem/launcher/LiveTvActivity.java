@@ -730,11 +730,37 @@ public class LiveTvActivity extends Activity {
         Ch c = shown.get(chSel);
         if (c.kind == 3) { Toast.makeText(this, "Add your provider in Settings > My IPTV", Toast.LENGTH_SHORT).show(); return; }
         if (c.kind == 6) {
-            // v4.44: a web site opens in the built-in WebView.
-            Intent i = new Intent(this, WebViewActivity.class);
-            i.putExtra("url", c.url);
-            i.putExtra("name", c.name);
-            startActivity(i);
+            // v4.52: Cemba's own WebView is the default again (it has the
+            // red-circle mouse and Back returns to Cemba). But if the box
+            // has no WebView provider at all, the built-in view cannot
+            // work -- open the site in an external browser instead.
+            // If the WebView exists but is too old to render the site,
+            // WebViewActivity itself detects the failure and redirects
+            // out (see its onConsoleMessage).
+            boolean hasWebView = false;
+            try {
+                hasWebView = android.webkit.WebView.getCurrentWebViewPackage() != null;
+            } catch (Exception e) { hasWebView = false; }
+            if (!hasWebView) {
+                // No WebView at all: open the Cartoony app itself; if it
+                // is not installed, fall back to the browser chooser.
+                try {
+                    Intent i = getPackageManager().getLaunchIntentForPackage("tv.ufogrendizer.twa");
+                    if (i != null) { i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); startActivity(i); }
+                    else {
+                        Intent b = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(c.url));
+                        b.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(b);
+                    }
+                } catch (Exception e) {
+                    Toast.makeText(this, "No browser found for this link", Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                Intent i = new Intent(this, WebViewActivity.class);
+                i.putExtra("url", c.url);
+                i.putExtra("name", c.name);
+                startActivity(i);
+            }
         } else if (c.kind == 5) {
             // v4.38: a series title opens its season list.
             String series = c.series != null ? c.series : "choufli";

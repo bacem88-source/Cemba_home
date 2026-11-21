@@ -1,15 +1,71 @@
 package com.bacem.launcher;
 
-/** v4.55: Kids timer foreground service. The AlarmManager path (alarm
-    clock, activity PendingIntent) works on the N5 Max but never fires on
-    the Xiaomi box -- MIUI/Android TV 14 defers or drops the alarm, and
-    there is no "Battery unrestricted" setting on Android TV to fix it
-    with. A foreground service is the reliable path on that box: it stays
-    alive while Jannah watches YouTube, checks every 30 seconds, and
-    when the daily limit or bedtime is reached it brings MainActivity
-    forward (a foreground service may start an activity) so onResume
-    shows Time's up. Started when Kids mode is entered, stopped when it
-    is left. Shows a small "Kids time" notification while running. */
+/** v4.55: Kids timer foreground service -- the PRIMARY timer on the
+    Xiaomi box. It stays alive while Jannah watches YouTube / Cobalt,
+    checks every 30 seconds, and when the daily limit or bedtime is
+    reached it brings MainActivity forward (a foreground service may
+    start an activity) so onResume shows Time's up. Started when Kids
+    mode is entered, stopped when it is left. Shows a small "Kids time"
+    notification while running.
+    ------------------------------------------------------------------
+    KIDS TIMER -- EVERY APPROACH TRIED, IN ORDER (kept in the code so
+    we know what was done; the alarm path is still scheduled as a
+    backup, see scheduleKidsAlarm / KidsTimerReceiver).
+    v3.87 Handler tick in MainActivity (kidsTick, 60 s): counted minutes
+      by ticks. DIED when the activity was destroyed in the background
+      while Jannah watched YouTube, so the limit never fired. Kept only
+      as a widget refresh + check while the home is up; counting is now
+      time-based (kidsUsedToday) so missed ticks lose nothing.
+    v4.29/4.30 PowerService (accessibility) lockdown: tried to force the
+      home / lock apps via the accessibility service. BROKE on the box
+      (fired on every system window, PIN untypable) and Cemba Power is
+      blocked on the Xiaomi anyway (device admin policy, "Skipping
+      enabling service disallowed by device admin policy"). ABANDONED.
+      Do not retry the enable loop.
+    v4.44/4.46 HOME intent: when time was up, send a HOME intent to
+      bring the launcher forward. FAILED on all boxes -- the video app
+      stayed open. Kept only as a fallback inside KidsTimerReceiver.
+    v4.51 AlarmManager -> broadcast PendingIntent: the alarm fired a
+      broadcast and the receiver tried to start MainActivity from the
+      background. BLOCKED on Android 10+ (background activity start
+      restriction). FAILED on every box. The receiver is kept for manual
+      / broadcast triggers only; the alarm no longer goes through it.
+    v4.52 AlarmManager -> activity PendingIntent, setExactAndAllowWhile-
+      Idle: the alarm itself carries an ACTIVITY PendingIntent, delivered
+      by the system, so the start is allowed even from the background
+      and in Doze. BUT on Android 12+ it needs SCHEDULE_EXACT_ALARM,
+      which the box never granted, so it fell back to the inexact
+      setAndAllowWhileIdle and the alarm was deferred in Doze. FAILED
+      on all boxes.
+    v4.54 setAlarmClock: exempt from the exact-alarm permission, fires
+      exactly even in Doze, activity PendingIntent brings MainActivity
+      forward. WORKS on the N5 Max (Android 9). Does NOT work on the
+      Xiaomi (Android TV 14 / MIUI defers or drops it -- and Android TV
+      has no "Battery unrestricted" setting to fix it with). KEPT as a
+      backup: scheduleKidsAlarm still arms it.
+    v4.55 Foreground service (this file): the reliable path on the
+      Xiaomi in theory -- a foreground service is not deferred like an
+      alarm. FAILED on the Xiaomi at first (2026-11-20): no "Kids time"
+      notification ever appeared while she watched, so the service never
+      ran and nothing closed YouTube Kids or Cobalt when time was up.
+      ROOT CAUSE: the manifest declared foregroundServiceType="dataSync"
+      but was MISSING the FOREGROUND_SERVICE_DATA_SYNC permission, which
+      Android 14 (API 34, targetSdk 34) requires for that type. Without
+      it startForeground() throws a SecurityException (swallowed by the
+      try/catch), so the service never became foreground. FIXED in
+      v4.57 by adding that permission to the manifest. This service is
+      now the primary timer on the Xiaomi; the setAlarmClock alarm is
+      kept as a backup.
+    v4.58 Second-session bug (2026-11-20): the service closed YouTube
+      the FIRST time time was up, but NOT the second time. Cause: the
+      tick called stopSelf() right after bringHome(). After the first
+      "Time's up" the service was dead, the home was already in front
+      so onResume never fired to restart it, and when Jannah opened
+      YouTube again nothing was watching. FIXED by removing stopSelf()
+      -- the service now keeps watching while Kids mode is on and pulls
+      her out every time she goes back into YouTube. It only stops when
+      Kids mode is turned off.
+    ------------------------------------------------------------------ */
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -47,9 +103,22 @@ public class KidsTimerService extends Service {
             @Override public void run() {
                 try {
                     if (timeUp()) {
+                        // v4.58: bring the home forward, but DO NOT stop
+                        // the service. The first version stopped itself
+                        // here, and that broke the second YouTube session:
+                        // after the first "Time's up" the service was dead,
+                        // the home was already in front so onResume never
+                        // fired to restart it, and when Jannah opened
+                        // YouTube again nothing was watching -- the timer
+                        // never closed it. The service must keep watching
+                        // while Kids mode is on, so every time she goes
+                        // back into YouTube it pulls her out again within
+                        // 30 s. It only stops when Kids mode is turned off
+                        // (setKidsMode(false) stops it). bringHome is a
+                        // no-op when MainActivity is already on top
+                        // (SINGLE_TOP), so calling it every 30 s while
+                        // time is up is harmless.
                         bringHome();
-                        stopSelf();
-                        return;
                     }
                 } catch (Exception e) { /* ignore */ }
                 try { handler.postDelayed(tickR, CHECK_MS); } catch (Exception e) { /* ignore */ }

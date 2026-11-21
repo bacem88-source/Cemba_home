@@ -24,7 +24,13 @@ package com.bacem.launcher;
     from the exact-alarm permission, fires exactly even in Doze, and its
     activity PendingIntent is delivered by the system, so it brings
     MainActivity forward and onResume shows Time's up. It shows a small
-    alarm-clock icon in the status bar while armed -- harmless on a TV. */
+    alarm-clock icon in the status bar while armed -- harmless on a TV.
+    VERDICT (2026-11-20): setAlarmClock WORKS on the N5 Max (Android 9)
+    but does NOT fire on the Xiaomi (Android TV 14 / MIUI defers or
+    drops it). KEPT as a backup -- scheduleKidsAlarm still arms it, and
+    the foreground service (KidsTimerService, v4.55, fixed v4.57) is now
+    the primary timer on the Xiaomi. Full approach history lives in
+    KidsTimerService.java. */
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
