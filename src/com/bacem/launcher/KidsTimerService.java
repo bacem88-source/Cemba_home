@@ -65,6 +65,16 @@ package com.bacem.launcher;
       -- the service now keeps watching while Kids mode is on and pulls
       her out every time she goes back into YouTube. It only stops when
       Kids mode is turned off.
+    v1.0 Second-session STILL failing (2026-11-22, on 1.0 / v4.59 code):
+      the service closed YouTube the first time, but NOT the second
+      time, and the "Kids time" notification was GONE during the second
+      YouTube session -- the service was dead. Cause: the notification
+      was IMPORTANCE_LOW, so the box (MIUI / 2 GB RAM) killed the
+      service while YouTube was in front and it never came back.
+      FIX: notification channel raised to IMPORTANCE_HIGH -- a visible
+      banner while Kids mode is on, and the system treats the service
+      as user-visible so it is much less likely to kill it. The
+      version stays 1.0 (versionCode 181, so it updates over 180).
     ------------------------------------------------------------------ */
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -92,7 +102,7 @@ public class KidsTimerService extends Service {
         try {
             if (Build.VERSION.SDK_INT >= 26) {
                 NotificationChannel ch = new NotificationChannel(CHANNEL_ID, "Kids time",
-                        NotificationManager.IMPORTANCE_LOW);
+                        NotificationManager.IMPORTANCE_HIGH);
                 ch.setDescription("Kids timer");
                 NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
                 if (nm != null) nm.createNotificationChannel(ch);
