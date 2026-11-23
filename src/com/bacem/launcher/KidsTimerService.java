@@ -75,6 +75,18 @@ package com.bacem.launcher;
       banner while Kids mode is on, and the system treats the service
       as user-visible so it is much less likely to kill it. The
       version stays 1.0 (versionCode 181, so it updates over 180).
+    v4.50 Timer STILL failing (2026-11-23, on 1.0 code 181): the
+      "Kids time" banner IS visible on the Kids home, but GONE once
+      YouTube opens -- the service starts fine, then the box kills the
+      WHOLE app process to free memory for YouTube, and the service
+      dies with it because it runs in the same process as MainActivity.
+      The high-priority notification did not save it. FIX: run the
+      service in its own process (android:process=":timer") so it
+      survives even when the home screen's process is killed for
+      memory. Because a separate process cannot see MainActivity's
+      cached SharedPreferences, timeUp() now reads the prefs XML file
+      directly from disk every tick, so a timer reset is seen at once.
+      Built as UAT 4.50 (versionCode 182); production stays 1.0.
     ------------------------------------------------------------------ */
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -164,12 +176,68 @@ public class KidsTimerService extends Service {
         return START_STICKY;
     }
 
+    // v4.50: read the timer settings fresh from the prefs XML file on
+    // disk, NOT from the cached SharedPreferences. This service runs in
+    // its own process (:timer), and a separate process cannot see the
+    // prefs MainActivity (main process) writes -- the cached copy in
+    // this process would go stale, so a timer reset would be missed and
+    // the service would keep closing YouTube after a reset. Reading the
+    // file directly sees every write at once. Any read failure returns
+    // defaults (kidsMode false), so the timer just does nothing.
+    static class TimerPrefs {
+        boolean kidsMode;
+        String bedtime = "";
+        int limitMin;
+        String usedDate = "";
+        int usedMin;
+        long sessionStart;
+    }
+
+    TimerPrefs readTimerPrefs() {
+        TimerPrefs r = new TimerPrefs();
+        java.io.File f = null;
+        try {
+            f = new java.io.File(getApplicationInfo().dataDir, "shared_prefs/ui.xml");
+        } catch (Exception e) { return r; }
+        java.io.FileInputStream in = null;
+        try {
+            in = new java.io.FileInputStream(f);
+            org.xmlpull.v1.XmlPullParser p = android.util.Xml.newPullParser();
+            p.setInput(in, "UTF-8");
+            int ev;
+            while ((ev = p.next()) != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) {
+                if (ev != org.xmlpull.v1.XmlPullParser.START_TAG) continue;
+                String tag = p.getName();
+                String name = p.getAttributeValue(null, "name");
+                if (name == null) continue;
+                if (tag.equals("string")) {
+                    String text = "";
+                    try { text = p.nextText(); } catch (Exception e) { text = ""; }
+                    if (text == null) text = "";
+                    if (name.equals("kids_bedtime")) r.bedtime = text;
+                    else if (name.equals("kids_used_date")) r.usedDate = text;
+                    continue;
+                }
+                String v = p.getAttributeValue(null, "value");
+                if (v == null) continue;
+                if (tag.equals("boolean") && name.equals("kids_mode")) r.kidsMode = Boolean.parseBoolean(v);
+                else if (tag.equals("int") && name.equals("kids_limit_min")) r.limitMin = Integer.parseInt(v);
+                else if (tag.equals("int") && name.equals("kids_used_min")) r.usedMin = Integer.parseInt(v);
+                else if (tag.equals("long") && name.equals("kids_session_start")) r.sessionStart = Long.parseLong(v);
+            }
+        } catch (Exception e) { /* keep defaults */ }
+        finally {
+            try { if (in != null) in.close(); } catch (Exception e) { /* ignore */ }
+        }
+        return r;
+    }
+
     boolean timeUp() {
         try {
-            SharedPreferences p = getSharedPreferences("ui", MODE_PRIVATE);
-            if (!p.getBoolean("kids_mode", false)) return false;
+            TimerPrefs p = readTimerPrefs();
+            if (!p.kidsMode) return false;
             // Bedtime.
-            String bt = p.getString("kids_bedtime", "");
+            String bt = p.bedtime;
             if (bt.length() > 0) {
                 String[] parts = bt.split(":");
                 if (parts.length == 2) {
@@ -180,12 +248,12 @@ public class KidsTimerService extends Service {
                 }
             }
             // Daily limit.
-            int limit = p.getInt("kids_limit_min", 0);
+            int limit = p.limitMin;
             if (limit > 0) {
                 String today = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(new java.util.Date());
                 int used = 0;
-                if (today.equals(p.getString("kids_used_date", ""))) used = p.getInt("kids_used_min", 0);
-                long start = p.getLong("kids_session_start", 0);
+                if (today.equals(p.usedDate)) used = p.usedMin;
+                long start = p.sessionStart;
                 if (start > 0) used += Logic.kidsElapsedMin(start, System.currentTimeMillis());
                 if (used >= limit) return true;
             }
