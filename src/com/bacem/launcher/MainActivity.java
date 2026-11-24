@@ -941,6 +941,14 @@ public class MainActivity extends Activity {
                 Intent svc = new Intent(this, KidsTimerService.class);
                 if (android.os.Build.VERSION.SDK_INT >= 26) startForegroundService(svc);
                 else startService(svc);
+                try {
+                    startService(new Intent(this, KidsTimerService.class)
+                        .setAction(KidsTimerService.ACTION_HIDE_OVERLAY));
+                } catch (Throwable ignored) {}
+                if (android.os.Build.VERSION.SDK_INT >= 33
+                        && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) {
+                    try { requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 901); } catch (Throwable ignored) {}
+                }
             }
         } catch (Throwable t) {}
         // v4.31: check GitHub once a day for a newer Cemba Home (see
@@ -955,6 +963,12 @@ public class MainActivity extends Activity {
     @Override protected void onPause() {
         super.onPause();
         resumed = false;
+        try {
+            if (kidsMode()) {
+                startService(new Intent(this, KidsTimerService.class)
+                    .setAction(KidsTimerService.ACTION_HOME_PAUSED));
+            }
+        } catch (Throwable ignored) {}
     }
 
     // v3.93: when the home is no longer visible (he opened a movie app),
@@ -3907,6 +3921,9 @@ public class MainActivity extends Activity {
             // is not.
             settingsRow(settingsContentCol, "Kids YouTube switch", isBridgeSwitchReady() ? "Ready - Bridge turns off in Kids, on in Family" : "Not ready - tap for the one-time grant command",
                 new Runnable() { @Override public void run() { if (isBridgeSwitchReady()) toast("Bridge switch is ready"); else toast("Run in TellyScope Shell: pm grant com.bacem.launcher android.permission.WRITE_SECURE_SETTINGS"); } });
+            settingsRow(settingsContentCol, "Time-up app blocker",
+                canDrawOverlaysSafe() ? "Ready - closes YouTube & apps when time is up" : "Not granted - tap to allow Display over other apps",
+                new Runnable() { @Override public void run() { requestOverlayPermission(); } });
             // The PIN sits under the Kids items here (his call): it is what
             // keeps Jannah in Kids, locks apps, and stops her extending time.
             settingsRow(settingsContentCol, pinSet() ? "App PIN: set" : "App PIN: not set",
@@ -4837,6 +4854,26 @@ public class MainActivity extends Activity {
     // launcher deliberately does not ask for.
     boolean kidsMode() { return getSharedPreferences("ui", MODE_PRIVATE).getBoolean("kids_mode", false); }
 
+    boolean canDrawOverlaysSafe() {
+        try {
+            return android.os.Build.VERSION.SDK_INT < 23 || Settings.canDrawOverlays(this);
+        } catch (Throwable t) { return false; }
+    }
+
+    void requestOverlayPermission() {
+        if (canDrawOverlaysSafe()) {
+            toast("Time-up app blocker is ready");
+            return;
+        }
+        try {
+            Intent i = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:" + getPackageName()));
+            startActivity(i);
+        } catch (Throwable t) {
+            toast("Run in TellyScope Shell: appops set com.bacem.launcher SYSTEM_ALERT_WINDOW allow");
+        }
+    }
+
     void toggleKidsMode() {
         if (kidsMode()) { exitKidsModePin(); return; }
         if (!pinSet()) {
@@ -4848,7 +4885,8 @@ public class MainActivity extends Activity {
         if (csvSet("kids_apps").isEmpty())
             toast("No kids apps chosen yet - add some in Settings, Kids");
         setKidsMode(true);
-        toast("Kids mode on");
+        if (!canDrawOverlaysSafe()) toast("Kids mode on - allow 'Display over other apps' in Settings > Kids so apps close when time is up");
+        else toast("Kids mode on");
     }
 
     void exitKidsModePin() {
@@ -4878,14 +4916,14 @@ public class MainActivity extends Activity {
         } else if (!on && kidsMode()) {
             applyTheme(p.getString("family_theme", "gold"), false);
         }
-        p.edit().putBoolean("kids_mode", on).apply();
+        p.edit().putBoolean("kids_mode", on).commit();
         // v3.87: time-based Kids timer. Record the session start when
         // entering Kids mode; when leaving, commit the elapsed minutes to
         // kids_used_min. kidsUsedToday() adds the live session elapsed on
         // top, so the count is right even if the tick missed minutes while
         // another app (YouTube Kids) was in front or the activity died.
         if (on) {
-            p.edit().putLong("kids_session_start", System.currentTimeMillis()).apply();
+            p.edit().putLong("kids_session_start", System.currentTimeMillis()).commit();
         } else {
             long start = p.getLong("kids_session_start", 0);
             long elapsed = Logic.kidsElapsedMin(start, System.currentTimeMillis());
@@ -4893,9 +4931,9 @@ public class MainActivity extends Activity {
                 int used = p.getInt("kids_used_min", 0);
                 String today = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(new java.util.Date());
                 if (!today.equals(p.getString("kids_used_date", ""))) used = 0;
-                p.edit().putString("kids_used_date", today).putInt("kids_used_min", used + (int) elapsed).apply();
+                p.edit().putString("kids_used_date", today).putInt("kids_used_min", used + (int) elapsed).commit();
             }
-            p.edit().putLong("kids_session_start", 0).apply();
+            p.edit().putLong("kids_session_start", 0).commit();
             KidsTimerReceiver.cancel(this);
         }
         // v3.64: Bridge follows the profile. Kids gets the official YouTube
@@ -5139,7 +5177,7 @@ public class MainActivity extends Activity {
     void doResetKidsTimer() {
         SharedPreferences p = getSharedPreferences("ui", MODE_PRIVATE);
         String today = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(new java.util.Date());
-        p.edit().putString("kids_used_date", today).putInt("kids_used_min", 0).putLong("kids_session_start", System.currentTimeMillis()).apply();
+        p.edit().putString("kids_used_date", today).putInt("kids_used_min", 0).putLong("kids_session_start", System.currentTimeMillis()).commit();
         if (kidsMode()) { scheduleKidsAlarm(); kidsCheck(); }
         updateTimerWidget();
         toast("Timer reset - fresh day");
@@ -5159,7 +5197,7 @@ public class MainActivity extends Activity {
                     try { v = Integer.parseInt(in.getText().toString().trim()); }
                     catch (Exception e) { toast("Enter a number of minutes"); return; }
                     if (v < 0) v = 0;
-                    getSharedPreferences("ui", MODE_PRIVATE).edit().putInt("kids_limit_min", v).apply();
+                    getSharedPreferences("ui", MODE_PRIVATE).edit().putInt("kids_limit_min", v).commit();
                     updateTimerWidget();
                     scheduleKidsAlarm();
                     if (fromTimer) { buildWidgetsRow(); }
@@ -5180,7 +5218,7 @@ public class MainActivity extends Activity {
                 @Override public void onClick(DialogInterface d, int w) {
                     String v = in.getText().toString().trim();
                     if (v.length() == 0) {
-                        getSharedPreferences("ui", MODE_PRIVATE).edit().putString("kids_bedtime", "").apply();
+                        getSharedPreferences("ui", MODE_PRIVATE).edit().putString("kids_bedtime", "").commit();
                         fillSettingsPanel();
                         toast("No bedtime");
                         return;
@@ -5190,7 +5228,7 @@ public class MainActivity extends Activity {
                         int h = Integer.parseInt(parts[0]), m = Integer.parseInt(parts[1]);
                         if (parts.length != 2 || h < 0 || h > 23 || m < 0 || m > 59) throw new Exception();
                     } catch (Exception e) { toast("Use a time like 21:00"); return; }
-                    getSharedPreferences("ui", MODE_PRIVATE).edit().putString("kids_bedtime", v).apply();
+                    getSharedPreferences("ui", MODE_PRIVATE).edit().putString("kids_bedtime", v).commit();
                     fillSettingsPanel();
                     scheduleKidsAlarm();
                     toast("Bedtime: " + v);

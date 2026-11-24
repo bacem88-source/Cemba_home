@@ -87,7 +87,38 @@ package com.bacem.launcher;
       cached SharedPreferences, timeUp() now reads the prefs XML file
       directly from disk every tick, so a timer reset is seen at once.
       Built as UAT 4.50 (versionCode 182); production stays 1.0.
+    v4.50 (2026-11-24) :timer process broke bringHome: the service
+      survived (banner stayed on the Kids home) but YouTube never
+      closed when time was up, and even after closing YouTube by hand
+      the sound kept playing (Picture-in-Picture). The :timer process
+      cannot start MainActivity -- startActivity() from a background
+      process is BLOCKED on Android 14 (targetSdk 34) by Background
+      Activity Launch restrictions.
+    v4.51 Background Activity Launch fix (2026-11-24): bringHome() is
+      now multi-pronged so at least one path pulls her out:
+      (1) stopPlayback() steals audio focus (AUDIOFOCUS_GAIN) and
+      dispatches MEDIA_PAUSE + MEDIA_STOP so the player stops at once
+      (focus is abandoned again when time is no longer up, and on
+      destroy, so it never blocks audio later);
+      (2) a full-screen TYPE_APPLICATION_OVERLAY "Time's up" blocker
+      covers whatever app is open (needs SYSTEM_ALERT_WINDOW /
+      "Display over other apps" -- Settings > Kids > Time-up app
+      blocker, or appops set com.bacem.launcher SYSTEM_ALERT_WINDOW
+      allow), which also exempts the app from the Android 14 BAL
+      restriction;
+      (3) MainActivity is launched via startActivity AND a full-screen
+      alarm notification PendingIntent (USE_FULL_SCREEN_INTENT) plus
+      the PowerService GO_HOME broadcast if enabled;
+      (4) killBackgroundProcesses() on the video-app packages once
+      they are out of the foreground (it cannot kill a foreground
+      app, so it only cleans up after the home is already in front).
+      Also: timer prefs writes changed from apply() to commit() so
+      the :timer process reading the prefs XML file sees a reset at
+      once instead of a stale async write. PiP: turn off
+      Picture-in-Picture for YouTube (Settings > Apps > YouTube) so
+      it cannot keep playing in a floating window after being closed.
     ------------------------------------------------------------------ */
+import android.app.ActivityManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -95,52 +126,98 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.graphics.PixelFormat;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
+import android.media.AudioManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.provider.Settings;
+import android.view.Gravity;
+import android.view.KeyEvent;
+import android.view.View;
+import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import java.util.HashSet;
+import java.util.Set;
 
 public class KidsTimerService extends Service {
     static final String CHANNEL_ID = "kids_timer";
+    static final String ALARM_CHANNEL_ID = "kids_timer_alarm";
     static final int NOTIF_ID = 77;
+    static final int ALARM_NOTIF_ID = 78;
     static final long CHECK_MS = 30000L;
+    public static final String ACTION_HIDE_OVERLAY = "com.bacem.launcher.HIDE_TIMEUP_OVERLAY";
+    public static final String ACTION_HOME_PAUSED = "com.bacem.launcher.HOME_PAUSED";
+
+    private static final String[] VIDEO_PKGS = {
+        "com.google.android.youtube.tv",
+        "com.google.android.youtube",
+        "com.google.android.apps.youtube.kids",
+        "io.gh.reisxd.tizentube.cobalt",
+        "org.smarttube.stable",
+        "org.smarttube.beta",
+        "com.netflix.ninja",
+        "com.amazon.avod",
+        "com.disney.disneyplus",
+        "com.tubitv",
+        "com.tvtv.tubi.app",
+        "tv.pluto.android",
+        "xyz.netfly",
+        "org.drive_hunter",
+        "ver3.ycntivi.off",
+        "com.yacene.tvplus",
+        "com.t4w.ostora516",
+        "local.tvmorph.tv",
+        "com.stremio.one",
+        "org.videolan.vlc",
+        "com.playeregy.egyplayerapp",
+        "com.linkinapp.tunisielivetv",
+        "ca.cbc.android.cbctv"
+    };
 
     Handler handler;
     Runnable tickR;
+    View overlayView;
+    boolean homeVisible = false;
+    AudioManager.OnAudioFocusChangeListener focusListener = new AudioManager.OnAudioFocusChangeListener() {
+        @Override public void onAudioFocusChange(int focusChange) { /* no-op */ }
+    };
 
     @Override public void onCreate() {
         super.onCreate();
         try {
             if (Build.VERSION.SDK_INT >= 26) {
-                NotificationChannel ch = new NotificationChannel(CHANNEL_ID, "Kids time",
-                        NotificationManager.IMPORTANCE_HIGH);
-                ch.setDescription("Kids timer");
                 NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-                if (nm != null) nm.createNotificationChannel(ch);
+                if (nm != null) {
+                    NotificationChannel ch = new NotificationChannel(CHANNEL_ID, "Kids time",
+                            NotificationManager.IMPORTANCE_HIGH);
+                    ch.setDescription("Kids timer");
+                    nm.createNotificationChannel(ch);
+
+                    NotificationChannel alarmCh = new NotificationChannel(ALARM_CHANNEL_ID, "Kids time up",
+                            NotificationManager.IMPORTANCE_HIGH);
+                    alarmCh.setDescription("Alerts when kids screen time ends");
+                    nm.createNotificationChannel(alarmCh);
+                }
             }
         } catch (Exception e) { /* ignore */ }
         handler = new Handler(Looper.getMainLooper());
         tickR = new Runnable() {
             @Override public void run() {
                 try {
-                    if (timeUp()) {
-                        // v4.58: bring the home forward, but DO NOT stop
-                        // the service. The first version stopped itself
-                        // here, and that broke the second YouTube session:
-                        // after the first "Time's up" the service was dead,
-                        // the home was already in front so onResume never
-                        // fired to restart it, and when Jannah opened
-                        // YouTube again nothing was watching -- the timer
-                        // never closed it. The service must keep watching
-                        // while Kids mode is on, so every time she goes
-                        // back into YouTube it pulls her out again within
-                        // 30 s. It only stops when Kids mode is turned off
-                        // (setKidsMode(false) stops it). bringHome is a
-                        // no-op when MainActivity is already on top
-                        // (SINGLE_TOP), so calling it every 30 s while
-                        // time is up is harmless.
-                        bringHome();
+                    TimerPrefs p = readTimerPrefs();
+                    if (isTimeUp(p)) {
+                        bringHome(p);
+                    } else {
+                        removeOverlay();
+                        cancelAlarmNotification();
+                        abandonAudioFocus();
                     }
                 } catch (Exception e) { /* ignore */ }
                 try { handler.postDelayed(tickR, CHECK_MS); } catch (Exception e) { /* ignore */ }
@@ -149,6 +226,17 @@ public class KidsTimerService extends Service {
     }
 
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
+        String action = intent != null ? intent.getAction() : null;
+        if (ACTION_HIDE_OVERLAY.equals(action)) {
+            homeVisible = true;
+            removeOverlay();
+            cancelAlarmNotification();
+            return START_STICKY;
+        }
+        if (ACTION_HOME_PAUSED.equals(action)) {
+            homeVisible = false;
+            return START_STICKY;
+        }
         try {
             Intent home = new Intent(this, MainActivity.class);
             home.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
@@ -172,7 +260,10 @@ public class KidsTimerService extends Service {
             }
             startForeground(NOTIF_ID, n);
         } catch (Exception e) { /* ignore */ }
-        try { handler.removeCallbacks(tickR); handler.postDelayed(tickR, CHECK_MS); } catch (Exception e) { /* ignore */ }
+        try {
+            handler.removeCallbacks(tickR);
+            handler.postDelayed(tickR, CHECK_MS);
+        } catch (Exception e) { /* ignore */ }
         return START_STICKY;
     }
 
@@ -191,6 +282,7 @@ public class KidsTimerService extends Service {
         String usedDate = "";
         int usedMin;
         long sessionStart;
+        String kidsApps = "";
     }
 
     TimerPrefs readTimerPrefs() {
@@ -216,6 +308,7 @@ public class KidsTimerService extends Service {
                     if (text == null) text = "";
                     if (name.equals("kids_bedtime")) r.bedtime = text;
                     else if (name.equals("kids_used_date")) r.usedDate = text;
+                    else if (name.equals("kids_apps")) r.kidsApps = text;
                     continue;
                 }
                 String v = p.getAttributeValue(null, "value");
@@ -232,11 +325,9 @@ public class KidsTimerService extends Service {
         return r;
     }
 
-    boolean timeUp() {
+    boolean isTimeUp(TimerPrefs p) {
         try {
-            TimerPrefs p = readTimerPrefs();
             if (!p.kidsMode) return false;
-            // Bedtime.
             String bt = p.bedtime;
             if (bt.length() > 0) {
                 String[] parts = bt.split(":");
@@ -247,7 +338,6 @@ public class KidsTimerService extends Service {
                     if (now >= bed || now < 420) return true;
                 }
             }
-            // Daily limit.
             int limit = p.limitMin;
             if (limit > 0) {
                 String today = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(new java.util.Date());
@@ -261,16 +351,206 @@ public class KidsTimerService extends Service {
         return false;
     }
 
-    void bringHome() {
+    boolean timeUp() {
+        return isTimeUp(readTimerPrefs());
+    }
+
+    void stopPlayback() {
         try {
+            AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+            if (am != null) {
+                am.requestAudioFocus(focusListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
+                am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PAUSE));
+                am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_PAUSE));
+                am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_STOP));
+                am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_STOP));
+            }
+        } catch (Exception e) { /* ignore */ }
+    }
+
+    // v4.51 fix: stopPlayback() steals audio focus so the player stops,
+    // but the service must give it back -- otherwise it holds focus
+    // forever and no app can play sound again after time is up (even
+    // after a timer reset or Kids mode off). Called whenever time is
+    // no longer up and when the service stops.
+    void abandonAudioFocus() {
+        try {
+            AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+            if (am != null) am.abandonAudioFocus(focusListener);
+        } catch (Exception e) { /* ignore */ }
+    }
+
+    void killKidsApps(TimerPrefs p) {
+        try {
+            ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+            if (am == null) return;
+            Set<String> targets = new HashSet<String>();
+            for (String pkg : VIDEO_PKGS) targets.add(pkg);
+            if (p != null && p.kidsApps != null && p.kidsApps.length() > 0) {
+                String[] parts = p.kidsApps.split(",");
+                for (String s : parts) {
+                    String pkg = s.trim();
+                    if (pkg.length() > 0) targets.add(pkg);
+                }
+            }
+            String self = getPackageName();
+            for (String pkg : targets) {
+                if (self.equals(pkg)) continue;
+                try { am.killBackgroundProcesses(pkg); } catch (Exception e) { /* ignore */ }
+            }
+        } catch (Exception e) { /* ignore */ }
+    }
+
+    void showOverlayIfNeeded() {
+        if (homeVisible || overlayView != null) return;
+        if (Build.VERSION.SDK_INT >= 23 && !Settings.canDrawOverlays(this)) return;
+        try {
+            WindowManager wm = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
+            if (wm == null) return;
+
+            LinearLayout root = new LinearLayout(this);
+            root.setOrientation(LinearLayout.VERTICAL);
+            root.setGravity(Gravity.CENTER);
+            root.setBackgroundColor(0xF010141F);
+            root.setPadding(64, 48, 64, 48);
+
+            LinearLayout card = new LinearLayout(this);
+            card.setOrientation(LinearLayout.VERTICAL);
+            card.setGravity(Gravity.CENTER);
+            card.setPadding(56, 44, 56, 44);
+            GradientDrawable cardBg = new GradientDrawable();
+            cardBg.setColor(0xFF1B2233);
+            cardBg.setCornerRadius(24f);
+            cardBg.setStroke(2, 0xFFEC407A);
+            card.setBackground(cardBg);
+
+            TextView title = new TextView(this);
+            title.setText("Time's up");
+            title.setTextColor(Color.WHITE);
+            title.setTextSize(34f);
+            title.setTypeface(null, Typeface.BOLD);
+            title.setGravity(Gravity.CENTER);
+            card.addView(title);
+
+            TextView msg = new TextView(this);
+            msg.setText("Ask a grown-up to continue.");
+            msg.setTextColor(0xFFD0D8E8);
+            msg.setTextSize(20f);
+            msg.setGravity(Gravity.CENTER);
+            msg.setPadding(0, 16, 0, 28);
+            card.addView(msg);
+
+            Button btn = new Button(this);
+            btn.setText("Go to Cemba Home");
+            btn.setTextColor(Color.WHITE);
+            btn.setTextSize(18f);
+            btn.setAllCaps(false);
+            btn.setPadding(36, 18, 36, 18);
+            GradientDrawable btnBg = new GradientDrawable();
+            btnBg.setColor(0xFFEC407A);
+            btnBg.setCornerRadius(16f);
+            btn.setBackground(btnBg);
+            btn.setFocusable(true);
+            btn.setFocusableInTouchMode(true);
+            btn.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) {
+                    launchMainActivity();
+                }
+            });
+            card.addView(btn);
+            root.addView(card);
+
+            int type = Build.VERSION.SDK_INT >= 26
+                    ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                    : WindowManager.LayoutParams.TYPE_PHONE;
+            WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
+                    WindowManager.LayoutParams.MATCH_PARENT,
+                    WindowManager.LayoutParams.MATCH_PARENT,
+                    type,
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+                            | WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                    PixelFormat.TRANSLUCENT);
+            lp.gravity = Gravity.CENTER;
+            wm.addView(root, lp);
+            overlayView = root;
+            btn.requestFocus();
+        } catch (Throwable t) {
+            overlayView = null;
+        }
+    }
+
+    void removeOverlay() {
+        if (overlayView == null) return;
+        try {
+            WindowManager wm = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
+            if (wm != null) wm.removeViewImmediate(overlayView);
+        } catch (Throwable t) { /* ignore */ }
+        overlayView = null;
+    }
+
+    void sendFullScreenAlarmNotification() {
+        try {
+            NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm == null) return;
             Intent i = new Intent(this, MainActivity.class);
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            PendingIntent pi = PendingIntent.getActivity(this, 45, i,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            Notification.Builder b = Build.VERSION.SDK_INT >= 26
+                    ? new Notification.Builder(this, ALARM_CHANNEL_ID)
+                    : new Notification.Builder(this);
+            b.setContentTitle("Time's up")
+             .setContentText("Kids screen time has ended")
+             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+             .setCategory(Notification.CATEGORY_ALARM)
+             .setContentIntent(pi)
+             .setFullScreenIntent(pi, true)
+             .setAutoCancel(true);
+            nm.notify(ALARM_NOTIF_ID, b.build());
+        } catch (Exception e) { /* ignore */ }
+    }
+
+    void cancelAlarmNotification() {
+        try {
+            NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm != null) nm.cancel(ALARM_NOTIF_ID);
+        } catch (Exception e) { /* ignore */ }
+    }
+
+    void launchMainActivity() {
+        try { sendBroadcast(new Intent(PowerService.ACTION_GO_HOME)); } catch (Exception e) { /* ignore */ }
+        try {
+            Intent i = new Intent(this, MainActivity.class);
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                    | Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    | Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
             startActivity(i);
         } catch (Exception e) { /* ignore */ }
     }
 
+    void bringHome(TimerPrefs p) {
+        stopPlayback();
+        showOverlayIfNeeded();
+        launchMainActivity();
+        if (!homeVisible) sendFullScreenAlarmNotification();
+        killKidsApps(p);
+        handler.postDelayed(new Runnable() {
+            @Override public void run() {
+                killKidsApps(readTimerPrefs());
+            }
+        }, 1200L);
+    }
+
+    void bringHome() {
+        bringHome(readTimerPrefs());
+    }
+
     @Override public void onDestroy() {
         try { handler.removeCallbacks(tickR); } catch (Exception e) { /* ignore */ }
+        removeOverlay();
+        cancelAlarmNotification();
+        abandonAudioFocus();
         super.onDestroy();
     }
 
