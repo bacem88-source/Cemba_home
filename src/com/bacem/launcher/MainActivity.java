@@ -1201,6 +1201,11 @@ public class MainActivity extends Activity {
     }
 
     @Override public void onBackPressed() {
+        // v4.52: when Kids time is up, Back must not let her escape the
+        // Time's up screen back to a usable home (and from there back
+        // into YouTube). Swallow Back entirely while the limit/bedtime
+        // is reached; only the grown-up PIN (Grown-ups) gets her out.
+        if (kidsTimeUp()) return;
         // v3.85: Back never leaves Cemba Home. After entering the Watching
         // tab and browsing Top picks one by one, pressing Back was exiting
         // to Google TV Home (his report: "i go back to that tab it goes
@@ -5070,6 +5075,16 @@ public class MainActivity extends Activity {
         return p.getInt("kids_used_min", 0);
     }
 
+    // v4.52: true when Kids mode is on and time is up (bedtime passed
+    // or daily limit reached). Used to block Back and to re-show the
+    // Time's up dialog if it is ever dismissed while still up.
+    boolean kidsTimeUp() {
+        if (!kidsMode()) return false;
+        if (bedtimeBlocked()) return true;
+        int limit = getSharedPreferences("ui", MODE_PRIVATE).getInt("kids_limit_min", 0);
+        return limit > 0 && kidsUsedToday() >= limit;
+    }
+
     void kidsCheck() {
         if (!kidsMode()) return;
         if (bedtimeBlocked()) { showTimeUp("Past bedtime"); return; }
@@ -5118,6 +5133,18 @@ public class MainActivity extends Activity {
             })
             .setCancelable(false)
             .create();
+        // v4.52: self-healing -- if this dialog is ever dismissed while
+        // time is still up (Cancel on the PIN prompt, Back, or any other
+        // path), bring it straight back. Only a grown-up PIN (which
+        // exits Kids mode) lets her out; otherwise she would land on a
+        // usable home and open YouTube again.
+        final String r = reason;
+        d.setOnDismissListener(new DialogInterface.OnDismissListener() {
+            @Override public void onDismiss(DialogInterface dg) {
+                timeUpDialog = null;
+                if (kidsTimeUp() && resumed) showTimeUp(r);
+            }
+        });
         timeUpDialog = d;
         d.show();
     }

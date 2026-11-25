@@ -117,6 +117,22 @@ package com.bacem.launcher;
       once instead of a stale async write. PiP: turn off
       Picture-in-Picture for YouTube (Settings > Apps > YouTube) so
       it cannot keep playing in a floating window after being closed.
+      TESTED on box 2026-11-24: "It seems working." Became PRODUCTION
+      1.0 (code 183) the same day on his go.
+    v4.52 Time's up bypass (2026-11-25, on 1.0 code 183): when time
+      was up, tapping Cancel (on the grown-up PIN prompt) or pressing
+      Back let her land back on a usable Kids home and open YouTube
+      again. FIX: (1) onBackPressed() now swallows Back entirely
+      while Kids time is up (new kidsTimeUp() helper: Kids mode on
+      AND bedtime passed or daily limit reached); only the grown-up
+      PIN gets her out. (2) The Time's up dialog is self-healing: an
+      OnDismissListener brings it straight back if it is ever
+      dismissed while time is still up and Kids mode is on, so no
+      dismissal path leaves her on a usable home. (3) The overlay
+      blocker now swallows Back via an OnKeyListener on its root, so
+      Back cannot dismiss it back into YouTube; only its button
+      (which goes home, where the Time's up dialog holds) gets her
+      out. Built as UAT 4.52 (versionCode 184); production stays 1.0.
     ------------------------------------------------------------------ */
 import android.app.ActivityManager;
 import android.app.Notification;
@@ -413,6 +429,17 @@ public class KidsTimerService extends Service {
             root.setGravity(Gravity.CENTER);
             root.setBackgroundColor(0xF010141F);
             root.setPadding(64, 48, 64, 48);
+            // v4.52: swallow Back on the blocker so it cannot be
+            // dismissed back into YouTube; only the button (which goes
+            // home, where the Time's up dialog holds) gets her out.
+            root.setFocusable(true);
+            root.setFocusableInTouchMode(true);
+            root.setOnKeyListener(new View.OnKeyListener() {
+                @Override public boolean onKey(View v, int keyCode, KeyEvent event) {
+                    if (keyCode == KeyEvent.KEYCODE_BACK) return true;
+                    return false;
+                }
+            });
 
             LinearLayout card = new LinearLayout(this);
             card.setOrientation(LinearLayout.VERTICAL);
