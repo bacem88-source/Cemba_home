@@ -133,6 +133,18 @@ package com.bacem.launcher;
       Back cannot dismiss it back into YouTube; only its button
       (which goes home, where the Time's up dialog holds) gets her
       out. Built as UAT 4.52 (versionCode 184); production stays 1.0.
+    v4.53 PIN prompt covered (2026-11-26, on 4.52): the 4.52
+      self-healing re-show fired the instant Grown-ups was tapped,
+      because tapping an AlertDialog button auto-dismisses it. The
+      fresh Time's up dialog popped back on top of the PIN prompt and
+      hid the PIN field (keypad visible, prompt unreachable). FIX: a
+      timeUpPinOpen flag, set when Grown-ups is tapped. While it is
+      set, showTimeUp() will not show a new blocker and the dismiss
+      listener will not re-show; pinPrompt() brings the blocker back
+      itself (via kidsCheck) when it closes without exiting Kids mode
+      (Cancel / wrong PIN). A correct PIN exits Kids mode, so nothing
+      comes back. The flag is also cleared in setKidsMode(false).
+      Built as UAT 4.53 (versionCode 185); production stays 1.0.
     ------------------------------------------------------------------ */
 import android.app.ActivityManager;
 import android.app.Notification;

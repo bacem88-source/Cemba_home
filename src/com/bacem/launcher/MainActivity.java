@@ -109,6 +109,13 @@ public class MainActivity extends Activity {
     boolean themePanelFilled = false;
     EditText searchEdit;
     android.app.Dialog timeUpDialog;
+    // v4.53: set while the grown-up PIN prompt opened from the Time's
+    // up dialog is on screen. The Time's up dialog must NOT re-show
+    // while the PIN prompt is up, or it pops back on top of it and
+    // hides the PIN field (4.52 bug: tapping Grown-ups auto-dismissed
+    // the Time's up dialog, the self-healing listener re-showed it at
+    // once, and the PIN prompt vanished behind it).
+    boolean timeUpPinOpen = false;
     Runnable kidsTickR;
     // v3.61: true while the home is in front. The Time's up dialog can only
     // be shown then -- showing it from the background (while she is inside
@@ -4613,7 +4620,7 @@ public class MainActivity extends Activity {
         in.setHint("4-digit PIN");
         in.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_VARIATION_PASSWORD);
         in.setFilters(new InputFilter[] { new InputFilter.LengthFilter(4) });
-        new AlertDialog.Builder(this)
+        AlertDialog d = new AlertDialog.Builder(this)
             .setTitle("Enter PIN")
             .setView(in)
             .setPositiveButton("OK", new DialogInterface.OnClickListener() {
@@ -4624,7 +4631,20 @@ public class MainActivity extends Activity {
                 }
             })
             .setNegativeButton("Cancel", null)
-            .show();
+            .create();
+        // v4.53: if this prompt was opened from the Time's up dialog,
+        // bring the blocker back when it closes without exiting Kids
+        // mode (Cancel / wrong PIN). A correct PIN exits Kids mode, so
+        // kidsCheck finds nothing to block and nothing comes back.
+        d.setOnDismissListener(new DialogInterface.OnDismissListener() {
+            @Override public void onDismiss(DialogInterface dg) {
+                if (timeUpPinOpen) {
+                    timeUpPinOpen = false;
+                    if (resumed) kidsCheck();
+                }
+            }
+        });
+        d.show();
     }
 
     void runIfPinOk(final String pkg, final Runnable doLaunch) {
@@ -4949,6 +4969,9 @@ public class MainActivity extends Activity {
             try { timeUpDialog.dismiss(); } catch (Exception e) {}
             timeUpDialog = null;
         }
+        // v4.53: clear the Time's up PIN flag when Kids mode turns off,
+        // so it can never get stuck set (no-PIN exit, correct PIN).
+        if (!on) timeUpPinOpen = false;
         if (on) { startKidsTick(); scheduleKidsAlarm(); }
         else handler.removeCallbacks(kidsTickR);
         // v4.55: Kids timer foreground service -- the AlarmManager path
@@ -5117,6 +5140,10 @@ public class MainActivity extends Activity {
 
     void showTimeUp(String reason) {
         if (timeUpDialog != null) return;
+        // v4.53: never cover the grown-up PIN prompt. A timer tick or
+        // onResume re-showing the blocker while the PIN prompt is open
+        // would hide the PIN field behind a fresh Time's up dialog.
+        if (timeUpPinOpen) return;
         ringTimer();
         updateTimerWidget();
         // v3.61: stop everything -- pull her out of whatever she is watching
@@ -5129,7 +5156,14 @@ public class MainActivity extends Activity {
             .setTitle("Time's up")
             .setMessage(reason + ". Ask a grown-up to continue.")
             .setPositiveButton("Grown-ups", new DialogInterface.OnClickListener() {
-                @Override public void onClick(DialogInterface dg, int w) { exitKidsModePin(); }
+                @Override public void onClick(DialogInterface dg, int w) {
+                    // v4.53: tapping this button auto-dismisses the dialog,
+                    // which would fire the self-healing re-show below and
+                    // cover the PIN prompt. Flag it so the re-show waits
+                    // until the PIN prompt closes (see pinPrompt).
+                    timeUpPinOpen = true;
+                    exitKidsModePin();
+                }
             })
             .setCancelable(false)
             .create();
@@ -5142,7 +5176,10 @@ public class MainActivity extends Activity {
         d.setOnDismissListener(new DialogInterface.OnDismissListener() {
             @Override public void onDismiss(DialogInterface dg) {
                 timeUpDialog = null;
-                if (kidsTimeUp() && resumed) showTimeUp(r);
+                // v4.53: do not re-show while the grown-up PIN prompt is
+                // open (see timeUpPinOpen); pinPrompt brings the blocker
+                // back itself when it closes without exiting Kids mode.
+                if (!timeUpPinOpen && kidsTimeUp() && resumed) showTimeUp(r);
             }
         });
         timeUpDialog = d;
